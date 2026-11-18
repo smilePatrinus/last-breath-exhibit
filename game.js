@@ -1,0 +1,667 @@
+(function () {
+  "use strict";
+  const content = window.BreathContent;
+  const documents = window.BreathDocuments;
+  const plot = window.BreathStory;
+  const stages = window.BreathStages;
+  const screen = document.getElementById("screen");
+  const steps = document.getElementById("steps");
+  const feedback = document.getElementById("feedback");
+  const restart = document.getElementById("restart");
+  const sound = document.getElementById("sound");
+  const dialog = document.getElementById("restart-dialog");
+  const fields = { id: "檢體編號", date: "採檢時間", type: "檢體類型", result: "檢驗結果" };
+  const seals = { same: "同檢體證據", other: "其他檢體參考" };
+  let state, drag, swipe, ignoreClickUntil = 0, resetToast, audio;
+  let muted = true, mapControl;
+  const activity = ["gather","stamp","literature","report"];
+  const sceneViews = ["intro","brief","ending"];
+
+  function reset() {
+    state = {
+      view: "title", chapter: -1, beat: 0, source: "excel", slide: "L02", draft: {}, token: "", slot: "",
+      records: [], docket: 0, filed: [], pins: {}, zoom: false, seal: "", applied: "",
+      paper: 0, marks: [], kept: [], submitted: false, proof: 0, position: null, replied: false
+    };
+    render(true);
+  }
+
+  const html = (text) => String(text).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[character]);
+  const button = (text, action, value = "", options = {}) =>
+    '<button type="button" class="' + (options.kind || "quiet") + '" data-action="' + action +
+    '" data-value="' + value + '"' + (options.attrs || "") + '>' + text + '</button>';
+  const pressed = (value) => ' aria-pressed="' + Boolean(value) + '"';
+  const getRecord = (id) => content.records.find((record) => record.id === id);
+  const currentFile = () => state.records[state.docket];
+  const currentPaper = () => content.literature[state.paper];
+  const tabFocus = () => screen.querySelector("[data-focus]")?.focus({ preventScroll: true });
+
+  function toast(text, tone = "") {
+    window.clearTimeout(resetToast);
+    feedback.textContent = text;
+    feedback.dataset.tone = tone;
+    feedback.classList.add("shown");
+    resetToast = window.setTimeout(() => feedback.classList.remove("shown"), 5000);
+  }
+
+  function play(effect) {
+    if (muted) return;
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    if (!Audio) return;
+    try {
+      audio ||= new Audio();
+      if (audio.state === "suspended") audio.resume().catch(() => {});
+      const tones = {
+        phone: [654, 784, 654, 784], knock: [145, 130], rift: [277, 415, 554],
+        stamp: [100, 66], done: [392, 494, 587], tick: [310]
+      }[effect] || [310];
+      const step = effect === "phone" ? 0.16 : 0.09;
+      tones.forEach((frequency, index) => {
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        const start = audio.currentTime + index * step;
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.exponentialRampToValueAtTime(0.065, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
+        osc.connect(gain).connect(audio.destination);
+        osc.start(start);
+        osc.stop(start + 0.14);
+      });
+    } catch { /* Sound is optional. */ }
+  }
+
+  function go(view, chapter = state.chapter) {
+    state.view = view;
+    state.chapter = chapter;
+    state.beat = 0;
+    feedback.classList.remove("shown");
+    render(true);
+  }
+
+  const art = (scene) => '<div class="scene-art ' + scene + '" aria-hidden="true"></div>';
+  const heading = (name, description) =>
+    '<header class="work-heading" data-station="' + state.chapter + '">' + art(content.chapter[state.chapter].scene) + '<div><p class="eyebrow">' + content.chapter[state.chapter].place + '</p>' +
+    '<h1 tabindex="-1" data-focus>' + name + '</h1><p>' + description + '</p></div>' +
+    '<span class="chapter-number">' + content.chapter[state.chapter].num + '<span> / 04</span></span></header>' + guide();
+
+  function title() {
+    return '<section class="hero">' + art("room") +
+      '<div class="hero-content"><p class="eyebrow">肺 城 調 查 錄</p>' +
+      '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
+      '<p class="hero-copy">檢驗報告有好幾個名字。<br>哪一個和這次感染有關？</p>' +
+      button("開始調查 <span aria-hidden=\"true\">→</span>", "start", "", {kind:"primary hero-button"}) +
+      '<p class="hero-meta">四關 · 可用滑鼠、鍵盤或觸控</p></div></section>';
+  }
+
+  function travel() {
+    return stages.map(state, button);
+  }
+
+  function arrive(position) {
+    state.position = position;
+    go("brief");
+  }
+
+  function guide() {
+    const chapter = plot.chapters[state.chapter];
+    return '<details class="work-guide"><summary>醫師留言 · 任務提示</summary><p>' +
+      html(chapter.objective + chapter.task) + '</p></details>';
+  }
+
+  function sourceToken(record, key) {
+    const token = record.id + ":" + key;
+    const value = documents.value(record,key);
+    const visible = key === "date" ? '<span>' + content.caseInfo.year + '/' + record.date + '</span><small>' +
+      record.collected + '</small>' : key === "type" ? '<span title="' + html(value) + '">' + record.sampleCode +
+      '</span>' : html(value);
+    return button(visible, "token", token, {
+      kind: "token " + (state.token === token ? "selected" : ""),
+      attrs: ' data-drag="token" draggable="false"' + pressed(state.token === token) +
+        ' aria-label="' + html(record.id + " " + fields[key] + " " + value) + '"'
+    });
+  }
+
+  function gather() {
+    const excel = state.source === "excel";
+    const sourcePanel = excel ? documents.workbook(state.token,sourceToken,html) :
+      documents.powerpoint(getRecord(state.slide),button,sourceToken,html);
+    const prompts = {
+      id:"先在工作表選一個檢體編號，放到紀錄表。",
+      date:"用同一列的採檢時間填下一格。先核對日期有沒有落在收件窗。",
+      type:"再抄這一列的檢體類型。BAL 是支氣管肺泡灌洗液。",
+      result:"從 PPT 翻到同一個檢體編號，把檢驗結果帶入。"
+    };
+    const nextField = Object.keys(fields).find((key) => !state.draft[key]);
+    const guideText = state.records.length === 2 ? "兩張卡完成了。帶去窗口，確認哪張屬於本次 L02。" :
+      (prompts[nextField] || "核對欄位都來自同一份檢體，再把紀錄收進案卷。");
+    const slots = Object.entries(fields).map(([key, title]) => {
+      const value = state.draft[key];
+      const body = value ? '<strong>' + html(documents.value(value.record,key)) + '</strong><small>' + value.origin + '</small>' :
+        '<span>將' + title + '放在這裡</span>';
+      return '<div class="field"><span>' + title + '</span>' + button(body, "slot", key, {
+        kind: "drop " + (value ? "filled " : "") + (state.slot === key ? "selected" : ""),
+        attrs: ' data-drop="token"' + pressed(state.slot === key) + ' aria-label="' + html(title + " " + (value ? documents.value(value.record,key) : "空白")) + '"'
+      }) + '</div>';
+    }).join("");
+    const gathered = state.records.map((record) => '<li><strong>' + record.id + '</strong> <span>' +
+      record.date + ' · ' + record.sampleCode + ' · ' + html(record.result) + '</span></li>').join("");
+    return heading("失序的紀錄", "把本次感染附近的原始檢驗，整理成能追查的紀錄。") +
+      '<div class="reference case-strip"><span>病例 D07 · mNGS 採檢基準</span><strong>L02 · BAL · 11/18</strong>' +
+      '<span>採檢收件窗 11/15–11/21</span><details class="case-brief case-reference"><summary>翻開本次 mNGS 報告</summary>' +
+      '<div class="case-brief-body"><p>' + content.caseInfo.symptom + '</p><p>檢體 L02 · BAL · 11/18 採檢 · ' +
+      content.caseInfo.sequencingReport + ' 核發</p><table><thead><tr><th scope="col">候選學名</th><th scope="col">讀數</th></tr>' +
+      '</thead><tbody>' + Object.values(content.candidates).map((item) =>
+        '<tr><th scope="row"><em>' + html(item.scientific) + '</em></th><td>' + item.reads.toLocaleString("zh-TW") +
+        '</td></tr>').join("") + '</tbody></table><p class="hint">讀數是模擬定序數值。後續需對照檢體與其他證據。</p></div></details></div>' +
+      '<div class="work-grid"><section class="panel" id="raw-source"><div class="panel-top"><h2>原始資料</h2>' +
+      '<div class="tabs" aria-label="資料來源">' + button("採檢 Excel", "source", "excel", {attrs: pressed(excel)}) +
+      button("檢驗 PPT", "source", "ppt", {attrs: pressed(!excel)}) + '</div></div>' +
+      '<p class="hint">拖曳來源欄位，或點資料後再點紀錄表。</p>' + sourcePanel + '</section>' +
+      '<section class="panel clipboard"><div class="panel-top"><h2>採檢紀錄表</h2><span>' +
+      state.records.length + ' / 2 份</span></div><p class="next-step">' + guideText + '</p>' + slots + '<div class="mobile-return">' + button("回原始資料 ↑", "to-source", "", {kind:"quiet small"}) + '</div>' +
+      '<div class="actions">' + button("清空欄位", "clear", "", {attrs:Object.keys(state.draft).length ? "" : " disabled"}) +
+      button("收錄這份紀錄", "collect", "", {kind:"primary"}) + '</div>' +
+      (gathered ? '<ul class="collected" aria-label="已收錄紀錄">' + gathered + '</ul>' : "") +
+      (state.records.length === 2 ? '<div class="actions">' + button("帶著資料前往窗口 →", "gather-next", "", {kind:"primary"}) + '</div>' : "") +
+      '</section></div>';
+  }
+
+  function stamp() {
+    const record = currentFile();
+    const ready = state.pins.anchor && state.pins.file;
+    const pin = (text, key) => button(text, "pin", key, {
+      kind: "pin " + (state.pins[key] ? "selected" : ""), attrs:pressed(state.pins[key])
+    });
+    const stamps = Object.entries(seals).map(([key, label]) => button(label, "select-seal", key, {
+      kind:"stamp-tool " + key + (state.seal === key ? " selected" : ""),
+      attrs:' data-drag="seal" draggable="false"' + pressed(state.seal === key)
+    })).join("");
+    return heading("文件審查窗口", "先標記兩個檢體編號，再決定這份文件能支持哪個檢體。") +
+      '<div class="reference compact"><span>mNGS 參照件 · BAL · 11/18</span>' + pin("L02", "anchor") +
+      '<span>' + (state.pins.anchor ? "已標記 mNGS 檢體" : "點編號做標記") + '</span></div>' +
+      '<div class="work-grid counter-grid"><section class="docket panel"><div class="panel-top"><h2>入口文件</h2><span>' +
+      (state.docket + 1) + ' / ' + state.records.length + '</span></div>' +
+      '<article class="paper file-paper' + (state.zoom ? " zoom" : "") + '"><div class="panel-top"><h3 data-drag="file" data-value="document" draggable="false">檢驗單 ' + record.doc + '</h3>' +
+      button(state.zoom ? "還原" : "放大", "zoom", "", {kind:"quiet small",attrs:pressed(state.zoom)}) + '</div>' +
+      documents.labReport(record,html,{id:pin(record.id,"file")}) +
+      button(state.applied ? seals[state.applied] : "在這裡蓋章", "apply-seal", "", {
+        kind: "seal-target " + state.applied, attrs:' data-drop="seal" aria-label="蓋章處 ' +
+          (state.applied ? seals[state.applied] : "") + '"'
+      }) + '</article></section><section class="panel stamp-station"><div class="panel-top"><h2>審查章</h2></div>' +
+      '<p class="hint">' + (ready ? "檢體編號已標記。選擇並蓋下審查章。" : "兩個檢體編號都要標記，資料才能送出。") + '</p>' +
+      '<div class="stamp-tray">' + stamps + '</div><div class="reference mini">' +
+      '<span>同期窗 11/16–11/20</span><span>' + content.timing(record) + ' · 同期不一定是同檢體</span></div>' +
+      '<div class="actions">' + button("送入歸檔口 ↓", "file", "", {kind:"primary file-slot", attrs:' data-drop="file"'}) + '</div>' +
+      (state.filed.length ? '<p class="hint">已歸檔：' + state.filed.map((entry) => entry.id).join("、") + '</p>' : "") +
+      '</section></div>';
+  }
+
+  const evidence = [
+    {kind:"culture", target:"A", key:"direct", description:"BAL 培養明確寫出銅綠假單胞菌，能接到同一菌種的 mNGS 候選。"},
+    {kind:"group", target:"G", key:"group", description:"報告寫的是肺炎克雷伯氏菌群。K. variicola 只是其中一員，證據要留在群組層級。"}
+  ];
+
+  function routing() {
+    const item = evidence[state.proof];
+    if (item) {
+      const record = state.filed.find((entry) => entry.scope === "same" &&
+        entry.tests.some((test) => test.kind === item.kind && test.target === item.target));
+      const test = record.tests.find((entry) => entry.kind === item.kind && entry.target === item.target);
+      return heading("檔案蓋好章了", "L02 的單子有兩條結果。判斷每一條支持到哪一層。") +
+        '<section class="panel evidence-station"><div class="panel-top"><h2>同檢體檢驗結果</h2><span>' +
+        (state.proof+1) + ' / ' + evidence.length + '</span></div><div class="paper"><p class="eyebrow">L02 · 原單 ' +
+        record.doc + ' · ' + html(test.label) + '</p><p class="evidence-line"><em>' + html(test.finding) +
+        '</em></p><p>' + html(test.detail) + '</p></div>' +
+        (item.kind === "group" ? '<details class="case-brief"><summary>查這個群組包含哪些菌種</summary><p>' +
+          html(content.group.members.join("、")) + '</p></details>' : "") +
+        '<p class="next-step">這個檢驗結果指到個別菌種，還是只到群組？</p>' +
+        '<div class="review-actions">' + button("直接指名個別候選", "label-proof", "direct") +
+        button("支持群組，保留疑問", "label-proof", "group") + '</div></section>';
+    }
+    return heading("窗口回條", "看看相同的 mNGS 檢出，為什麼會走三條不同的路。") +
+      '<div class="route-grid">' + content.candidateRoutes(state.filed, state.kept).map((entry) =>
+        '<article class="panel route-summary"><span class="candidate">' + entry.id + '</span><div>' +
+        '<p class="tag ' + entry.grade + '">' + entry.tier + '</p><h2>' + html(entry.name) + '</h2><p>' +
+        html(entry.reason) + '</p></div></article>').join("") + '</div>' +
+      '<div class="actions">' + button("帶著候選 C 查文獻 →", "review-next", "", {kind:"primary"}) + '</div>';
+  }
+
+  function labelProof(key) {
+    const item = evidence[state.proof];
+    if (!item) return;
+    if (item.key !== key) return toast(item.description,"error");
+    state.proof += 1;
+    play("stamp");
+    render(true);
+    toast(item.description,"success");
+  }
+
+  function sourceLink(source) {
+    return '<a href="' + html(source.url) + '" target="_blank" rel="noopener noreferrer">' + html(source.label) + '</a>';
+  }
+
+  function literature() {
+    const paper = currentPaper();
+    const excerpt = paper.segments.map((part, index) => part.key || part.hint ?
+      button(html(part.text), "mark", String(index), {
+        kind: "phrase " + (state.marks.includes(index) ? "marked" : ""),
+        attrs: pressed(state.marks.includes(index))
+      }) : html(part.text)).join("");
+    return heading("候選複核室", "一次讀一篇。圈出能與本案對照的線索，再決定要不要存入案卷。") +
+      '<div class="reference"><span>本案焦點</span><strong>K. variicola · L02 BAL · 咳嗽</strong>' +
+      '<span>FilmArray 只回報肺炎克雷伯氏菌群</span></div>' +
+      '<div class="review-lanes"><section class="panel literature"><div class="panel-top"><h2>手上的文獻</h2><span>' +
+      (state.paper + 1) + ' / ' + content.literature.length + '</span></div>' +
+      '<article class="paper abstract" data-swipe><p class="eyebrow">' +
+      (paper.source ? "公開文獻改寫" : "教學模擬文獻") + ' · ' + paper.id + '</p><h3 class="abstract-title">' +
+      html(paper.title) + '</h3><p class="excerpt">' + excerpt + '</p>' +
+      (paper.source ? '<p class="paper-source">' + sourceLink(paper.source) + '</p>' : "") +
+      '<p class="hint">圈出可對照的檢體 · 左滑略過 · 右滑收入</p></article>' +
+      '<div class="review-actions">' + button("← 略過", "classify", "skip") +
+      button("收入案卷 →", "classify", "keep", {kind:"primary"}) + '</div></section>' +
+      '<aside class="panel folder"><div class="panel-top"><h2>案卷夾</h2><span>' + state.kept.length + ' 篇</span></div>' +
+      (state.kept.length ? '<ul>' + state.kept.map((item) => '<li><strong>文獻 ' + item.id +
+        '</strong><span>' + html(item.note) + '</span></li>').join("") + '</ul>' : '<p class="hint">收入的摘要與限制會留在這裡。</p>') +
+      '</aside></div>';
+  }
+
+  function reportCard(item) {
+    const records = item.inputs.map((record) => '<li><strong>' + record.id + ' · ' + record.date +
+      ' · ' + record.sampleCode + ' · ' + seals[record.scope] + '</strong><span>採檢 ' +
+      html(record.dateTime) + ' · 末次核發 ' + record.reportDate + '</span><span>' +
+      html(record.result) + '</span><span>' + html(documents.origin(record,"id")) + '、' +
+      html(documents.origin(record,"result")) + '</span></li>').join("");
+    const papers = (item.papers || []).map((paper) => '<li><strong>' + html(paper.title) + '</strong><span>' +
+      html(paper.note) + '</span><span>標記：' + paper.quotes.map(html).join("、") +
+      '</span><span>' + html(paper.excerpt) + '</span>' +
+      (paper.source ? '<span>' + sourceLink(paper.source) + '</span>' : '<span>教學模擬摘要</span>') + '</li>').join("");
+    return '<details class="panel report-card" ' + (item.id === "C" ? "open" : "") + '><summary><span class="candidate">' +
+      item.id + '</span><span><strong>' + html(item.name) + '</strong><small>' + html(item.scientific) +
+      '</small></span><span class="tag ' + item.grade + '">' + item.tier + '</span></summary>' +
+      '<div class="report-body"><p>' + html(item.signal) + '</p><ol class="trail">' +
+      item.path.map((text) => '<li>' + html(text) + '</li>').join("") + '</ol><p>' + html(item.reason) + '</p>' +
+      (records ? '<h3>院端紀錄</h3><ul class="citations">' + records + '</ul>' : "") +
+      (papers ? '<h3>保留的文獻</h3><ul class="citations">' + papers + '</ul>' :
+        (item.id === "C" ? '<p class="hint">本輪沒有收入外部文獻，仍可保留院端群組線索。</p>' : "")) +
+      '</div></details>';
+  }
+
+  function report() {
+    return heading(state.submitted ? "調查報告" : "交回調查報告", "每個候選都附上來源與理由。送出前，回覆醫師的最後一個問題。") +
+      (state.replied ? '<p class="reference report-reply">已回覆醫師 · 白色念珠菌的培養來自 L01 的痰液，11/18 是核發日。</p>' :
+        '<section class="panel report-reply"><p class="eyebrow">醫師來電</p><h2>「白色念珠菌的培養，是哪一份檢體？」</h2>' +
+        '<p class="hint">展開白色念珠菌的卡片，對照檢體類型與採檢時間。</p><div class="actions">' +
+        button("L01 · 痰液","reply","L01") + button("L02 · BAL","reply","L02") + '</div></section>') +
+      '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept).map(reportCard).join("") + '</div>' +
+      '<div class="report-footer"><p>報告會附上原單、保留的文獻與尚待確認的線索。</p>' +
+      button(state.submitted ? "返回結案畫面" : "送出調查報告 →", state.submitted ? "back-done" : "submit", "", {kind:"primary",attrs:state.replied ? "" : " disabled"}) +
+      '</div>';
+  }
+
+  function done() {
+    const project = [
+      ["整理原始資料","以兩院資料為例，從試算表和簡報擷取欄位，按病人與採檢紀錄對齊。高醫則有自己的前端資料處理流程。"],
+      ["整合檢體證據","分開整理院端檢驗和 mNGS 檢出，保留來源、採檢時間、檢體及證據層級。"],
+      ["複核仍有疑問的候選","視需要查文獻作背景，並把檢出、可參考的證據與它的限制放在一起。"],
+      ["交付可追溯的結果","回到原始資料核對，保留仍待查證的候選與理由。"]
+    ];
+    return '<section class="hero last">' + art("room") + '<div class="hero-content"><p class="eyebrow">調查報告已送達診療室</p>' +
+      '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
+      '<div class="closing-copy"><p>你整理了 ' + state.records.length + ' 份採檢紀錄、審查了 ' + state.filed.length +
+      ' 份檢驗單，並保留 ' + state.kept.length + ' 篇可供對照的文獻。</p>' +
+      '<p>把檢驗單對回採檢紀錄，就能分清痰液的培養和 BAL 的 mNGS 各自支持到哪裡。</p></div>' +
+      '<div class="actions">' + button("查看調查報告", "see-report", "", {kind:"primary"}) + button("再玩一次", "replay") +
+      '</div></div></section><details class="panel project-note" open><summary>剛才玩的四步，對應到我們的專題</summary><ol>' +
+      project.map(([title,description]) => '<li><strong>' + title + '</strong><p>' + description + '</p></li>').join("") +
+      '</ol></details><details class="panel project-note"><summary>展示病例的資料參考</summary>' +
+      '<ul class="citations">' + Object.values(content.bibliography).map((item) => '<li>' + sourceLink(item) + '</li>').join("") +
+      '</ul><p class="hint">D07 的檢體、日期與檢驗數值皆為模擬。公開文獻在各卡片另有標示。</p></details>';
+  }
+
+  const views = {title, travel, gather, stamp, routing, literature, report, done};
+
+  function render(focus) {
+    const before = document.activeElement?.closest?.("[data-action]");
+    const key = before && {action:before.dataset.action, value:before.dataset.value};
+    restart.hidden = state.view === "title";
+    const stickGuide = screen.querySelector(".work-guide")?.open && screen.dataset.view === state.view;
+    if (sceneViews.includes(state.view)) {
+      if (screen.dataset.view !== state.view) screen.innerHTML = stages.shell();
+      stages.update(screen.firstElementChild,state,button,html);
+    } else {
+      mapControl?.stop();
+      mapControl = null;
+      screen.innerHTML = views[state.view]();
+      if (state.view === "travel") mapControl = window.BreathWorld.mount(screen,state.chapter,state.position,arrive);
+      const guideElement = screen.querySelector(".work-guide");
+      if (guideElement) guideElement.open = Boolean(stickGuide);
+    }
+    if (state.view !== "travel" && mapControl) {
+      mapControl.stop();
+      mapControl = null;
+    }
+    screen.dataset.view = state.view;
+    steps.innerHTML = content.chapter.map((chapter, index) => {
+      const current = index === state.chapter && !["ending","done"].includes(state.view);
+      const complete = index < state.chapter || state.submitted;
+      return '<span class="step' + (current ? ' current' : '') + (complete ? ' complete' : '') +
+        '"' + (current ? ' aria-current="step"' : '') + '><b>' + (complete ? '✓' : chapter.num) +
+        '</b><span>' + chapter.short + '</span></span>';
+    }).join("");
+    if (focus) {
+      window.scrollTo(0, 0);
+      tabFocus();
+    } else if (key) {
+      Array.from(screen.querySelectorAll("[data-action]")).find((control) =>
+        control.dataset.action === key.action && control.dataset.value === key.value)?.focus({preventScroll:true});
+    }
+  }
+
+  function placeToken(token, slot) {
+    const [recordId, key] = token.split(":");
+    const record = getRecord(recordId);
+    if (!record || !fields[slot]) return;
+    if (key !== slot) {
+      toast("這格需要「" + fields[slot] + "」。你拿的是「" + fields[key] + "」。", "error");
+      return;
+    }
+    const origin = documents.origin(record,key);
+    state.draft[slot] = {record, origin};
+    state.token = "";
+    state.slot = "";
+    play("tick");
+    render(false);
+  }
+
+
+  function collect() {
+    const {id} = state.draft;
+    const cells = Object.keys(fields).map((key) => state.draft[key]);
+    if (cells.some((entry) => !entry))
+      return toast("先填齊檢體編號、採檢時間、檢體類型和檢驗結果。","error");
+    if (cells.some((entry) => entry.record !== id.record))
+      return toast("有欄位來自不同檢體。請核對試算表的列和 PPT 報告編號。","error");
+    const record = id.record;
+    if (!content.fitWindow(record))
+      return toast(record.id + " 採於 " + record.date + "，超出本關的 11/15–11/21 收件窗。", "error");
+    if (state.records.includes(record))
+      return toast(record.id + " 已收錄，請找另一份符合日期的紀錄。", "error");
+    state.records.push(record);
+    state.draft = {};
+    state.token = "";
+    state.slot = "";
+    play("done");
+    render(false);
+    toast("已收錄 " + record.id + "，並保留試算表與投影片的來源。", "success");
+  }
+
+  function applySeal(key) {
+    if (!key) return toast("先拿起一枚審查章。", "error");
+    if (!state.pins.anchor || !state.pins.file)
+      return toast("先在 mNGS 參照件和檢驗單各點一次檢體編號。", "error");
+    state.seal = key;
+    state.applied = key;
+    play("stamp");
+    render(false);
+  }
+
+  function file() {
+    const record = currentFile();
+    if (!state.applied) return toast("先在文件上蓋章，再送入歸檔口。", "error");
+    const scope = content.chooseScope(record);
+    if (state.applied !== scope) {
+      state.applied = "";
+      render(false);
+      return toast(scope === "same" ? "檢驗單和 mNGS 都是 L02 的 BAL，這份可以蓋「同檢體證據」。" :
+        "mNGS 是 L02 的 BAL，這份是 L01 的痰液。兩份日期接近，仍屬其他檢體。", "error");
+    }
+    state.filed.push({...record, scope, reference:"L02", pins:{...state.pins}, timing:content.timing(record)});
+    state.docket += 1;
+    state.pins = {};
+    state.zoom = false;
+    state.seal = "";
+    state.applied = "";
+    play("done");
+    if (state.docket === state.records.length) go("routing");
+    else render(true);
+    toast("已歸檔 " + record.id + " · " + seals[scope] + "。", "success");
+  }
+
+  function mark(index) {
+    const segment = currentPaper().segments[index];
+    if (!segment) return;
+    if (segment.hint) return toast(segment.hint);
+    if (!segment.key) return;
+    feedback.classList.remove("shown");
+    state.marks = state.marks.includes(index) ? state.marks.filter((value) => value !== index) : [...state.marks, index];
+    render(false);
+  }
+
+  function classify(decision) {
+    const paper = currentPaper();
+    if (decision === "keep") {
+      if (!paper.fit) return toast(paper.feedback, "error");
+      if (!state.marks.some((index) => paper.segments[index].key === "site"))
+        return toast("先在這篇摘要圈出能和本案比對的檢體部位。", "error");
+      state.kept.push({id:paper.id, title:paper.title, source:paper.source, note:paper.note,
+        quotes:state.marks.map((index) => paper.segments[index].text),
+        excerpt:paper.segments.map((part) => part.text).join("")});
+      play("done");
+    } else play("tick");
+    state.paper += 1;
+    state.marks = [];
+    if (state.paper === content.literature.length) go("travel", 3);
+    else render(true);
+    toast(decision === "keep" ? "已收入文獻 " + paper.id + "。 " + paper.feedback :
+      "已略過文獻 " + paper.id + "。", decision === "keep" ? "success" : "");
+  }
+
+  function advance() {
+    const current = stages.lines(state);
+    if (state.beat === current.length - 1) {
+      if (state.view === "ending") go("done");
+      else if (state.view === "brief") go(activity[state.chapter]);
+      else go("travel", 0);
+      return;
+    }
+    state.beat += 1;
+    if (current[state.beat].cue) play(current[state.beat].cue);
+    render(true);
+  }
+
+  function focusSource() {
+    const source = screen.querySelector("#raw-source");
+    source?.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
+    source?.scrollIntoView({block:"start"});
+  }
+  const actions = {
+    start: () => { go("intro"); play("phone"); },
+    skip: () => go("travel", 0),
+    advance,
+    "walk-goal": () => mapControl?.walkTo(),
+    "walk-step": (direction) => mapControl?.step(direction),
+    "to-source": () => focusSource(),
+    source: (value) => {
+      state.source = value;
+      state.token = "";
+      const record = state.draft.id?.record;
+      if (value === "ppt" && record) state.slide = record.id;
+      render(false);
+    },
+    slide: (id) => {
+      state.slide = id;
+      state.token = "";
+      render(false);
+    },
+    "report-date": (id) => {
+      const record = getRecord(id);
+      toast(record.reportDate + " 是末次核發日；這份 " + record.sampleCode + " 檢體於 " + record.date + " 採到。");
+    },
+    token: (value) => {
+      if (state.slot) return placeToken(value, state.slot);
+      state.token = state.token === value ? "" : value;
+      render(false);
+      if (state.token && window.matchMedia("(max-width: 620px)").matches) {
+        const key = state.token.split(":")[1];
+        const field = screen.querySelector('[data-action="slot"][data-value="' + key + '"]');
+        field?.focus({preventScroll:true});
+        field?.scrollIntoView({block:"center"});
+      }
+    },
+    slot: (value) => {
+      if (state.token) return placeToken(state.token, value);
+      state.slot = state.slot === value ? "" : value;
+      render(false);
+    },
+    clear: () => { state.draft = {}; state.token = ""; state.slot = ""; render(false); },
+    collect,
+    "gather-next": () => {
+      state.records.sort((a,b) => a.date.localeCompare(b.date));
+      go("travel", 1);
+    },
+    pin: (value) => {
+      state.pins[value] = !state.pins[value];
+      if (!state.pins[value]) state.applied = "";
+      render(false);
+    },
+    zoom: () => { state.zoom = !state.zoom; render(false); },
+    "select-seal": (value) => { state.seal = value; render(false); },
+    "apply-seal": () => applySeal(state.seal),
+    file,
+    "label-proof": labelProof,
+    "review-next": () => go("travel", 2),
+    mark: (value) => mark(Number(value)),
+    classify,
+    reply: (value) => {
+      if (value !== "L01") return toast("11/18 是培養的核發日。翻到白色念珠菌的院端紀錄，看看採檢時間與檢體類型。","error");
+      state.replied = true;
+      render(false);
+      screen.querySelector('[data-action="submit"]')?.focus({preventScroll:true});
+      toast("來源已回覆醫師。","success");
+    },
+    submit: () => { if (state.replied) { state.submitted = true; go("ending"); play("rift"); } },
+    "see-report": () => go("report", 3),
+    "back-done": () => go("done"),
+    replay: reset
+  };
+
+  screen.addEventListener("click", (event) => {
+    const control = event.target.closest("[data-action]");
+    if (!control || (performance.now() < ignoreClickUntil && event.detail !== 0)) return;
+    actions[control.dataset.action]?.(control.dataset.value);
+  });
+
+  function keydown(event) {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || dialog.open) return;
+    if (sceneViews.includes(state.view) && (event.key === "ArrowRight" ||
+        (event.code === "Space" && !event.target.closest("button,a")))) {
+      event.preventDefault();
+      advance();
+    }
+    if (state.view === "literature" && ["ArrowLeft","ArrowRight"].includes(event.key)) {
+      event.preventDefault();
+      classify(event.key === "ArrowLeft" ? "skip" : "keep");
+    }
+  }
+
+  document.addEventListener("keydown", keydown);
+  restart.addEventListener("click", () => {
+    if (typeof dialog.showModal === "function") { dialog.returnValue = ""; dialog.showModal(); }
+    else if (window.confirm("重新開始調查？")) reset();
+  });
+  dialog.addEventListener("close", () => { if (dialog.returnValue === "confirm") reset(); });
+  sound.addEventListener("click", () => {
+    muted = !muted;
+    sound.setAttribute("aria-pressed", String(!muted));
+    sound.textContent = "音效：" + (muted ? "關" : "開");
+    if (!muted) play("tick");
+  });
+
+
+  function point(event) {
+    return {x:event.clientX, y:event.clientY};
+  }
+
+  screen.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    const handler = event.target.closest("[data-drag]");
+    const article = event.target.closest("[data-swipe]");
+    if (handler) {
+      drag = {id:event.pointerId, kind:handler.dataset.drag, value:handler.dataset.value,
+        label:handler.innerText, start:point(event), ghost:null};
+    } else if (article) {
+      swipe = {id:event.pointerId, article, start:point(event), moving:false};
+    }
+  });
+
+  window.addEventListener("pointermove", (event) => {
+    if (drag?.id === event.pointerId) {
+      const dx = event.clientX - drag.start.x, dy = event.clientY - drag.start.y;
+      if (!drag.ghost && Math.hypot(dx,dy) < 7) return;
+      if (!drag.ghost) {
+        drag.ghost = document.createElement("span");
+        drag.ghost.className = "drag-ghost";
+        drag.ghost.textContent = drag.label;
+        document.body.append(drag.ghost);
+        screen.setPointerCapture(event.pointerId);
+      }
+      drag.ghost.style.left = event.clientX + "px";
+      drag.ghost.style.top = event.clientY + "px";
+      const target = document.elementFromPoint(event.clientX,event.clientY)?.closest("[data-drop]");
+      if (drag.target !== target) {
+        drag.target?.classList.remove("over");
+        drag.target = target?.dataset.drop === drag.kind ? target : null;
+        drag.target?.classList.add("over");
+      }
+    } else if (swipe?.id === event.pointerId) {
+      const dx = event.clientX - swipe.start.x, dy = event.clientY - swipe.start.y;
+      if (!swipe.moving && (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.4)) return;
+      swipe.moving = true;
+      const capped = Math.max(-120,Math.min(120,dx));
+      swipe.article.classList.add("swiping");
+      swipe.article.style.setProperty("--swipe", capped + "px");
+      swipe.article.dataset.swipeSide = Math.abs(dx) >= 54 ? (dx > 0 ? "keep" : "skip") : "";
+    }
+  });
+
+  function endPointer(event, cancel = false) {
+    if (drag?.id === event.pointerId) {
+      const item = drag;
+      drag = null;
+      item.ghost?.remove();
+      item.target?.classList.remove("over");
+      if (!item.ghost || cancel) return;
+      ignoreClickUntil = performance.now() + 260;
+      if (!item.target) return;
+      if (item.kind === "token") placeToken(item.value,item.target.dataset.value);
+      else if (item.kind === "seal") applySeal(item.value);
+      else file();
+    }
+    if (swipe?.id === event.pointerId) {
+      const gesture = swipe;
+      swipe = null;
+      gesture.article.classList.remove("swiping");
+      gesture.article.style.removeProperty("--swipe");
+      delete gesture.article.dataset.swipeSide;
+      if (!gesture.moving || cancel) return;
+      ignoreClickUntil = performance.now() + 260;
+      const dx = event.clientX - gesture.start.x, dy = event.clientY - gesture.start.y;
+      if (Math.abs(dx) >= 54 && Math.abs(dx) > Math.abs(dy) * 1.25)
+        classify(dx > 0 ? "keep" : "skip");
+    }
+  }
+
+  window.addEventListener("pointerup", (event) => endPointer(event));
+  window.addEventListener("pointercancel", (event) => endPointer(event,true));
+  reset();
+})();
+
+
+
+
+
+
+

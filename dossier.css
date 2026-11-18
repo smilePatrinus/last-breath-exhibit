@@ -1,0 +1,120 @@
+
+.office { margin-top: 12px; overflow: hidden; border: 1px solid #728981; border-radius: 7px; background: #f8faf7; color: #1d352b; }
+.office-title { display: flex; align-items: center; gap: 7px; padding: 6px 10px; background: #22523e; color: #fff; font-size: .86rem; }
+.office-title b { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #c1d5bd; border-radius: 4px; background: #326a4c; }
+.office-title span { margin-left: auto; color: #e7eee6; font-size: .7rem; white-space: nowrap; }
+.formula-bar { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: .75rem; background: #f0f1ec; border-bottom: 1px solid #bec7bd; }
+.formula-bar span, .formula-bar div { min-height: 26px; padding: 2px 6px; background: white; border: 1px solid #a8b5a7; }
+.formula-bar span { width: 50px; text-align: center; }
+.formula-bar i { font-family: Georgia, serif; color: #426452; }
+.formula-bar div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.workbook-grid { table-layout: fixed; border-collapse: collapse; width: 100%; font-size: .8rem; }
+.workbook-grid .row-index { width: 8%; }
+.workbook-grid .patient-col { width: 18%; }
+.workbook-grid .id-col { width: 17%; }
+.workbook-grid .date-col { width: 30%; }
+.workbook-grid .type-col { width: 27%; }
+.workbook-grid td, .workbook-grid th { border: 1px solid #aab9ac; padding: 4px 3px; text-align: center; vertical-align: middle; }
+.workbook-grid thead th { background: #dceadd; color: #264135; }
+.workbook-grid .column-address td, .workbook-grid tbody th, .workbook-grid thead th:first-child { background: #e8ebe5; color: #415247; font-size: .71rem; }
+.workbook-grid tbody tr:nth-child(even) td { background-color: #eef4ee; }
+.workbook-grid td:has(.token) { padding: 0; }
+.workbook-grid .token {
+  display: grid; place-content: center; justify-items: center; width: 100%; min-height: 46px;
+  border: 0; border-radius: 0; padding: 3px 2px; color: #214c39; background: transparent;
+  font-size: clamp(.73rem,1.3vw,.86rem); font-variant-numeric: tabular-nums;
+}
+.workbook-grid .token small { display: block; color: #4d6456; font-weight: 500; }
+.workbook-grid .token.selected small { color: white; }
+.workbook-grid .token:hover { box-shadow: inset 0 0 0 2px #649473; }
+.workbook-grid .token:focus-visible { box-shadow: inset 0 0 0 3px #2a6e4c; outline: none; }
+.sheet-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 9px; background: #ecefe9; color: #415547; font-size: .77rem; }
+.sheet-footer span { padding: 3px 8px; background: white; border-bottom: 3px solid #517f60; font-weight: 700; }
+.ppt { border-color: #997c69; background: #ddd8d1; color: #2b2926; }
+.ppt .office-title { background: #883e2b; }
+.ppt .office-title b { background: #a74931; border-color: #f1b9a2; }
+.ppt-layout { display: grid; grid-template-columns: 72px minmax(0,1fr); gap: 7px; align-items: start; padding: 7px; }
+.slide-rail { display: grid; gap: 7px; }
+.slide-thumb {
+  display: grid; justify-items: center; gap: 2px; text-align: center;
+  min-height: 47px; color: #352b23; background: #eee9e2; border: 1px solid #b3a798; border-radius: 4px;
+  padding: 4px 2px; font-size: .72rem;
+}
+.slide-thumb[aria-pressed="true"] { outline: 2px solid #a84328; outline-offset: -2px; background: #fff7ef; color: #752711; }
+.slide-thumb:focus-visible, .date-chip:focus-visible { outline-color: #90371b; }
+.slide-thumb small { color: #716258; }
+.slide-icon {
+  width: 34px; height: 20px; border: 1px solid #ada295; border-top: 4px solid #85402e;
+  background: repeating-linear-gradient(#fbfaf6 0 3px,#c6c2ba 3px 4px);
+}
+.report-slide { min-width: 0; background: #fffdf9; border: 1px solid #b3a799; border-radius: 3px; }
+.report-slide > header { padding: 7px 10px; background: #2d4056; border-bottom: 3px solid #ae785e; color: #fff; }
+.report-slide > header p { font-size: .7rem; color: #d6e3ed; }
+.report-slide h3 { margin-top: 2px; font-size: .97rem; }
+.report-inset { padding: 7px; }
+.lab-report { min-width: 0; color: #182f3d; background: #fffcf7; border: 1px solid #96abb6; }
+.lab-head { display: flex; align-items: center; justify-content: space-between; gap: 3px 10px; flex-wrap: wrap; background: #e6eef2; padding: 7px 9px; border-bottom: 1px solid #96abb6; }
+.lab-head p { font-size: .67rem; color: #456375; }
+.lab-head strong { font-size: .88rem; }
+.lab-head > span { color: #6a4534; font-size: .65rem; border: 1px solid #a77d68; padding: 1px 4px; border-radius: 3px; }
+.lab-metadata, .file-paper .lab-metadata {
+  padding: 7px 9px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 6px 9px; font-size: .73rem; font-variant-numeric: tabular-nums; line-height: 1.4;
+}
+.lab-metadata > div, .file-paper .lab-metadata > div { display: block; padding: 0; }
+.lab-metadata dt, .file-paper .lab-metadata dt { color: #4b6473; font-size: .69rem; }
+.lab-metadata dd { overflow-wrap: anywhere; }
+.lab-metadata dd .pin { min-height: 36px; padding: 3px 10px; }
+.lab-metadata .date-chip { min-height: 35px; padding: 3px 5px; }
+.lab-results { border-collapse: collapse; table-layout: fixed; width: 100%; font-size: .73rem; line-height: 1.42; }
+.lab-results th, .lab-results td { text-align: left; vertical-align: top; padding: 5px; border-top: 1px solid #b7c8d2; overflow-wrap: anywhere; }
+.lab-results thead th { color: #294a5d; background: #eef3f6; }
+.lab-results thead th:nth-child(1) { width: 29%; }
+.lab-results thead th:nth-child(2) { width: 49%; }
+.lab-results thead th:nth-child(3) { width: 22%; }
+.lab-results td small { display: block; margin-top: 2px; color: #405e6d; }
+.report-slide .slide-result { padding: 5px 8px 8px; }
+.report-slide .slide-result > span { display: block; color: #565951; font-size: .7rem; }
+.report-slide .token { background: #eff6f1; color: #183e34; border-color: #719780; text-align: left; max-width: 100%; overflow-wrap: anywhere; }
+.file-paper .lab-report { margin-bottom: 7px; }
+.file-paper.zoom .lab-metadata, .file-paper.zoom .lab-results { font-size: 1rem; }
+
+
+.case-brief { margin: 0 0 12px; border: 1px solid #537978; border-radius: 6px; background: #152c34; }
+.case-brief summary { min-height: 40px; padding: 8px 11px; color: #c3eadf; cursor: pointer; font-weight: 650; }
+.case-brief p, .case-brief-body { padding: 0 10px 9px; }
+.case-brief-body p { padding: 0; margin-bottom: 7px; }
+.case-brief-body table { border-collapse: collapse; width: min(100%,450px); margin: 6px 0 9px; }
+.case-brief-body th, .case-brief-body td { border-bottom: 1px solid #5d7774; padding: 3px 8px; text-align: left; font-size: .86rem; }
+.case-brief-body td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.signal-paper { min-width: min(286px,83vw); }
+.signal-paper .signal-head, .signal-paper .signal-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 3px 1px; border-bottom: 1px solid #c1af92; line-height: 1.35; font-size: .82rem; }
+.signal-head { color: #4c6157; }
+.signal-paper .signal-focus { background: #f8daa7; color: #61380c; padding-inline: 4px; border-radius: 3px; }
+.abstract .abstract-title { color: #253942; font-size: clamp(1rem,2.3vw,1.18rem); line-height: 1.3; }
+.abstract .paper-source { font-size: .8rem; color: #245349; }
+.report-card summary strong, .report-card summary small { overflow-wrap: anywhere; }
+.report-card .citations a, .project-note .citations a { color: #bde3ed; }
+@media (max-width:620px) {
+  .ppt-layout { grid-template-columns: minmax(0,1fr); }
+  .slide-rail { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .report-inset { padding: 4px; }
+  .lab-results th, .lab-results td { padding: 5px 4px; }
+  .signal-paper { min-width: min(235px,78vw); }
+}
+@media (max-width:370px) {
+  .workbook-grid td, .workbook-grid th { padding-inline: 2px; font-size: .7rem; }
+  .workbook-grid .token { font-size: .69rem; }
+  .lab-metadata, .lab-results { font-size: .69rem; }
+}
+
+
+.case-strip .case-reference { margin: 0 0 0 auto; background: #223e42; border-color: #739c95; }
+.case-strip .case-reference > summary { min-height: 33px; padding-block: 5px; }
+.case-strip .case-reference[open] { flex-basis: 100%; }
+
+
+@media (min-width: 780px) and (min-height: 680px) {
+  .work-grid .clipboard, .counter-grid .stamp-station { position: sticky; top: 12px; }
+}
+

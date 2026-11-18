@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101923">
+  <meta name="description" content="走進肺部世界，整理資料、鑑定證據、查閱文獻。這是一款介紹 mNGS 病原判讀研究的展場解謎遊戲。">
+  <title>最後一口呼吸｜肺城調查錄</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/mark.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./exhibit.css?v=3">
+  <link rel="stylesheet" href="./dossier.css?v=3">
+  <script defer src="./content.js?v=3"></script>
+  <script defer src="./documents.js?v=3"></script>
+  <script defer src="./story.js?v=3"></script>
+  <script defer src="./world.js?v=3"></script>
+  <script defer src="./stages.js?v=3"></script>
+  <script defer src="./game.js?v=3"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳至遊戲內容</a>
+  <header class="shell-header">
+    <div class="shell-inner">
+      <div class="wordmark"><img src="./assets/mark.svg" alt="" width="33" height="33"><span>最後一口呼吸<small>肺城調查錄</small></span></div>
+      <nav class="steps" aria-label="調查進度" id="steps"></nav>
+      <div class="header-actions">
+        <button id="sound" class="quiet small" type="button" aria-pressed="false">音效：關</button>
+        <button id="restart" class="quiet small" type="button" hidden>重新開始</button>
+      </div>
+    </div>
+  </header>
+  <main id="main" class="shell" tabindex="-1">
+    <div id="screen"></div>
+    <noscript><p>請開啟瀏覽器的 JavaScript，才能開始遊戲。</p></noscript>
+  </main>
+  <div id="feedback" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="restart-dialog" aria-labelledby="restart-title">
+    <h2 id="restart-title">重新開始調查？</h2>
+    <p>這一輪整理的紀錄和案卷會清除。</p>
+    <form method="dialog" class="actions"><button value="cancel" class="quiet" autofocus>取消</button><button value="confirm" class="primary">重新開始</button></form>
+  </dialog>
+  <footer class="shell-footer"><span>專題展互動作品</span><span>模擬病例・公開與教學文獻</span></footer>
+</body>
+</html>
+
+

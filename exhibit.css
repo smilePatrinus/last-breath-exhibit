@@ -1,0 +1,262 @@
+
+/* The clinic and the four phone scenes share the same performers. */
+.cinematic {
+  isolation: isolate; position: relative; display: grid; align-items: end;
+  min-height: clamp(480px, 77vh, 690px); overflow: hidden; padding: clamp(14px,3vw,32px);
+  border: 1px solid #6f817e; border-radius: 12px; background: #111820;
+}
+.cinematic-bg, .cinematic-shade, .actors { position: absolute; inset: 0; pointer-events: none }
+.cinematic-bg {
+  background: url("./assets/scenes.png") left top / 200% 200% no-repeat;
+  transform: scale(1.27); transform-origin: 50% 62%; z-index: -3; transition: filter .8s ease;
+}
+.cinematic[data-scene="archive"] .cinematic-bg { background-position: right top }
+.cinematic[data-scene="counter"] .cinematic-bg { background-position: left bottom }
+.cinematic[data-scene="review"] .cinematic-bg { background-position: right bottom }
+.cinematic[data-scene="world"] .cinematic-bg { background: url("./assets/lung-city.png") 83% 62% / cover; transform: scale(1.01) }
+.cinematic-shade {
+  z-index: -2;
+  background: linear-gradient(0deg,#0a101a 0%,#10192252 52%,#17252c33 100%),
+    radial-gradient(ellipse at 50% 40%,transparent 23%,#08101a7a 100%);
+  transition: opacity .6s;
+}
+.quiet-opening .cinematic-bg { filter: brightness(.42) saturate(.8) }
+.cinematic-location {
+  position: absolute; z-index: 1; left: 18px; top: 16px; padding: 5px 11px; border: 1px solid #d7e0d464;
+  color: #ede5d0; background: #121e28e8; border-radius: 4px; font-size: .8rem;
+}
+.cast {
+  position: absolute; width: min(450px,46%); aspect-ratio: 1;
+  bottom: 88px; --offset: -56px; --look: 1; --scale: .94;
+  left: clamp(8px,5vw,80px);
+  background: url("./assets/portraits.png") var(--face) 0 / 300% 200% no-repeat;
+  mask-image: radial-gradient(ellipse 53% 67% at 50% 57%, black 46%, #000e 69%, transparent 100%);
+  filter: brightness(.65) saturate(.88) drop-shadow(0 17px 14px #0005);
+  opacity: 0; transform: translateX(var(--offset)) scale(var(--scale)) scaleX(var(--look));
+  transform-origin: center 82%;
+  transition: transform .31s cubic-bezier(.2,.75,.25,1), opacity .27s ease, filter .26s ease;
+}
+.cast.detective { background-position-y: 100% }
+.cast.doctor { left: auto; right: clamp(8px,5vw,80px); --offset: 56px; --look: -1 }
+.cast.on-stage { opacity: 1; --offset: 0 }
+.cast.speaking { --scale: 1; filter: brightness(1.04) saturate(1) drop-shadow(0 16px 14px #0006) }
+.cinematic[data-voice="thought"] .cast.detective { --offset: 12px; --scale: 1.05 }
+.cinematic[data-motion="inspect"] .cast.detective { --offset: 25px; --scale: 1.035 }
+.cinematic[data-motion="exit-doctor"] .cast.doctor { --offset: 52px; --scale: .94 }
+.cinematic[data-motion="cross"] .cast.detective { --offset: 69px; --scale: .86; opacity: .45 }
+.cinematic[data-scene-mode="call"] .cast.doctor {
+  filter: brightness(.85) saturate(.63) sepia(.13) drop-shadow(0 0 17px #5bc8b659);
+  --scale: .9; mask-image: linear-gradient(#000e 0%,#000 65%,transparent 100%);
+}
+.cinematic[data-scene-mode="call"][data-voice="doctor"] .cast.doctor { --scale: .98; animation: connection .32s ease }
+@keyframes connection { 45% { opacity: .65; filter: brightness(1.22) saturate(.45) } }
+.fracture {
+  position: absolute; z-index: -1; top: 8%; height: 69%; width: min(11%,105px); left: 49%;
+  background: #a3ffee; clip-path: polygon(64% 0,51% 31%,70% 45%,36% 67%,42% 73%,24% 100%,39% 74%,28% 65%,62% 45%,44% 30%);
+  opacity: 0; transform: rotate(5deg) scaleY(.72); transition: opacity .4s,transform .5s;
+}
+.has-rift .fracture { opacity: 1; transform: rotate(5deg) scaleY(1); animation: pulse-rift 1.9s ease-in-out infinite alternate }
+.has-trace .fracture { opacity: .23; background: #917a69; transform: rotate(5deg) scaleY(.65) }
+@keyframes pulse-rift { to { background: #d8fff6; opacity: .62 } }
+.cinematic-dialogue {
+  position: relative; z-index: 2; width: min(100%, 850px); margin-inline: auto; min-height: 165px;
+  padding: 16px clamp(14px,3vw,26px); border: 1px solid #a7906d; border-radius: 9px;
+  background: linear-gradient(125deg,#142330fc,#0e1924f7); box-shadow: 0 0 0 3px #1d252d99,0 14px 30px #0006;
+}
+.speaker-line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; min-height: 1.25em }
+.story-speaker { color: #f2d299; font-weight: 750; letter-spacing: .13em; font-size: .93rem }
+.story-line { color: #f6efe3; font-size: clamp(.99rem,2.1vw,1.2rem); min-height: 2.8em; line-height: 1.72 }
+.cinematic[data-voice="thought"] .story-line { color: #d3eddf }
+.cinematic[data-voice="narrator"] .story-line { color: #ddd7c8; font-family: var(--serif) }
+.voice-tag { display: none; font-size: .72rem; border: 1px solid #48887b; color: #bcf4e1; border-radius: 4px; padding: 2px 7px }
+.cinematic[data-scene-mode="call"][data-voice="doctor"] .voice-tag { display: block }
+.scene-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; justify-content: flex-end }
+.scene-prop {
+  position: absolute; z-index: 1; left: 50%; top: 18%; transform: translateX(-50%);
+  display: grid; justify-items: center; gap: 6px; width: max-content; max-width: calc(100% - 30px);
+}
+.prop-label {
+  background: #14272dea; color: #e2eee3; border: 1px solid #7cac9a;
+  padding: 6px 13px; border-radius: 4px; font-size: .82rem; text-align: center;
+}
+.signal-paper {
+  min-width: min(245px,74vw); background: #ede1c7f5; color: #213136; box-shadow: 0 10px 20px #0006;
+  border: 1px solid #bd9d77; border-radius: 5px; padding: 9px 14px; font-size: .8rem;
+}
+.signal-paper > div { display: flex; align-items: center; gap: 7px; margin-top: 5px }
+.signal-paper > div i { width: 27%; height: 5px; background: #58887e }
+.signal-paper > div:last-child i { width: 19% }
+.signal-paper .signal-focus i { width: 51%; background: #a45a22 }
+.signal-paper small { color: #704016; font-weight: 700 }
+.cinematic[data-motion="ring"] .cinematic-location { animation: signal-ring .34s steps(2,end) 4 }
+@keyframes signal-ring { 55% { background: #3a514c; border-color: #f4ca82 } }
+
+
+.overworld { overflow: hidden; background: #1a2831; border: 1px solid #6e817c; border-radius: 13px }
+.map-heading {
+  position: relative; padding: 15px clamp(12px,3vw,28px); display: flex;
+  justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 7px 20px;
+  background: linear-gradient(100deg,#1d343a,#1e2a32);
+}
+.map-heading h1 { color: #ffebc9; font: 700 clamp(1.75rem,4.3vw,3.15rem)/1.15 var(--serif); margin: 4px 0 }
+.map-heading p:not(.eyebrow) { color: #dce6e0; max-width: 52ch }
+.destination {
+  flex: none; border: 1px solid #719486; border-radius: 5px; color: #c9f2e4;
+  background: #203b38; padding: 6px 9px; font-size: .8rem; font-weight: 600;
+}
+.map-viewport {
+  position: relative; isolation: isolate; height: clamp(330px,46vw,560px); overflow: hidden; background: #1b1a33;
+  border-block: 1px solid #6a635a; cursor: crosshair; touch-action: pan-y;
+}
+.map-camera { position: absolute; inset: 0 auto 0 0; will-change: transform; }
+.map-floor {
+  position: absolute; inset: 0; pointer-events: none;
+  background: url("./assets/lung-city.png") center / 100% 100% no-repeat;
+}
+.map-station {
+  position: absolute; z-index: 1; left: var(--gate-x); top: calc(var(--gate-y) - 10px);
+  transform: translate(-50%,-100%); white-space: nowrap;
+}
+.map-gate {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 4px 8px; font-size: .83rem; font-weight: 700;
+  border: 1px solid #f8da92; border-radius: 5px; background: #241e1aee; color: #ffe7b4;
+}
+.map-station.goal .map-gate { box-shadow: 0 0 14px #eeb94e6e; background: #314b3d; border-color: #f4dc95 }
+.map-station.goal .map-gate::after {
+  content: ""; position: absolute; top: calc(100% + 2px); left: calc(50% - 5px);
+  width: 10px; height: 10px; background: #ffe5a1; clip-path: polygon(0 0,100% 0,50% 100%);
+  animation: marker-float .88s ease-in-out infinite alternate;
+}
+@keyframes marker-float { to { translate: 0 5px } }
+.map-gate.inactive { background: #202129ee; border-color: #9d8d70; color: #e5dbca }
+.gate-pin { display: grid; place-items: center; border-radius: 50%; width: 20px; height: 20px; background: #e9be76; color: #25261e; font: 700 .7rem var(--sans) }
+.inactive .gate-pin { background: #60574d; color: #fff3d9 }
+.map-actor { pointer-events: none; position: absolute; z-index: 2; }
+.map-actor > i {
+  position: absolute; width: 32px; height: 10px; border-radius: 50%; background: #24180970;
+  left: -16px; bottom: -2px; filter: blur(1.25px);
+}
+.map-sprite {
+  position: absolute; width: clamp(58px,7.5vw,91px); aspect-ratio: 1.01;
+  bottom: -5px; left: 0; transform: translateX(-50%); image-rendering: pixelated;
+  background: url("./assets/detective-walk.png") var(--walk-x,50%) var(--walk-y,66.6667%) / 300% 400% no-repeat;
+  filter: drop-shadow(0 1px 1px #1b1424);
+}
+.map-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 11px 15px; gap: 9px; }
+.map-controls > p { font-size: .85rem; color: var(--muted) }
+.map-buttons, .dpad { display: flex; flex-wrap: wrap; align-items: center; gap: 6px }
+.dpad .quiet { min-width: 44px; padding-inline: 8px; font-size: 1.05rem; }
+.work-guide { border: 1px solid #5a736e; border-radius: 7px; padding: 6px 11px; margin: -8px 0 13px; background: #1a302f; }
+.work-guide summary { cursor: pointer; color: #c1e9d8; font-size: .83rem; font-weight: 700; padding: 3px 0 }
+.work-guide p { margin: 6px 0 4px; color: #dbece2; font-size: .9rem }
+.next-step { padding: 8px 10px; margin: 9px 0; border-left: 3px solid #c1a170; background: #233642; font-size: .86rem; color: #f1e5cf }
+.table-sheet, .slide-stack { margin-top: 13px }
+.table-sheet { border: 1px solid #728882; border-radius: 7px; overflow: hidden; background: #e8ede1; color: #26352f }
+.table-sheet table { width: 100%; border-collapse: collapse; table-layout: fixed }
+.table-sheet th, .table-sheet td { text-align: center; padding: 7px 3px; border-bottom: 1px solid #a2b5a7; font-size: .8rem; }
+.table-sheet thead { background: #295748; color: #eef7ee }
+.table-sheet tbody tr:last-child > * { border-bottom: 0 }
+.table-sheet .token, .test-slide .token {
+  min-width: min(65%,80px); color: #24342e; background: #f6f9e9; border-color: #748a77;
+  text-align: left;
+}
+.table-sheet .token { text-align: center; min-height: 42px; padding: 6px; }
+.table-sheet :focus-visible, .test-slide :focus-visible { outline-color: #a56421 }
+.slide-stack { display: grid; gap: 9px }
+.test-slide { border: 1px solid #bdaf8a; background: #eee3cd; color: #282c30; border-radius: 5px; overflow: hidden }
+.test-slide header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; color: #f5eee1; background: #504138 }
+.test-slide header span, .slide-dates { font-size: .81rem }
+.slide-dates { display: flex; flex-wrap: wrap; gap: 3px 14px; align-items: center; padding: 4px 10px; color: #49433a }
+.date-chip { min-height: 37px; padding: 4px 6px; background: #f7eddb; border: 1px solid #9e8469; border-radius: 5px; color: #584335; font-size: .78rem }
+.slide-result { padding: 3px 10px 8px }
+.evidence-station { max-width: 760px; margin: 0 auto }
+.evidence-line { margin-top: 9px; font-size: 1.15rem; font-weight: 700 }
+.evidence-station .paper .eyebrow { color: #426459 }
+.report-reply { margin-bottom: 13px }
+.report-reply h2 { margin: 5px 0 }
+@media (max-width: 620px) {
+  .cinematic { min-height: min(600px,max(490px,75svh)); padding: 12px }
+  .cinematic-bg { background-size: auto 200% }
+  .cinematic[data-scene="room"] .cinematic-bg,
+  .cinematic[data-scene="counter"] .cinematic-bg { background-position-x: 18% }
+  .cinematic[data-scene="archive"] .cinematic-bg,
+  .cinematic[data-scene="review"] .cinematic-bg { background-position-x: 82% }
+  .cinematic-location { left: 12px; top: 11px }
+  .cast { width: min(59%,255px); bottom: 139px; left: -2%; }
+  .cast.doctor { left: auto; right: -2% }
+  .cinematic-dialogue { min-height: 163px; padding: 11px 12px; }
+  .scene-actions .primary { padding-inline: 9px }
+  .scene-prop { top: 15%; max-width: calc(100% - 20px) }
+  .signal-paper { min-width: min(188px,67vw); padding-block: 6px }
+  .prop-label { font-size: .77rem }
+  .map-viewport { height: 340px }
+  .map-controls { padding: 10px; }
+  .map-controls > p { width: 100%; font-size: .78rem }
+  .map-buttons { width: 100%; justify-content: space-between }
+  .dpad { gap: 4px }
+  .dpad .quiet { min-width: 34px; padding-inline: 5px }
+  .map-buttons > .primary { padding-inline: 9px; font-size: .86rem }
+  .work-guide { margin-top: 0 }
+}
+@media (max-width: 350px) {
+  .map-buttons { flex-wrap: nowrap }
+  .map-buttons > .primary { padding-inline: 7px; font-size: .75rem }
+  .dpad .quiet { min-width: 30px; line-height: 1 }
+}
+
+
+.project-note { margin-top: 17px }
+.project-note summary { cursor: pointer; color: var(--gold); font-weight: 750 }
+.project-note ol { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 11px; padding: 0; margin: 13px 0 0; list-style-position: inside }
+.project-note li { padding: 9px 12px; background: #20313b; border: 1px solid #47616a; border-radius: 6px }
+.project-note li p { margin: 5px 0 0; color: #d7e0de; font-size: .86rem }
+@media (max-width:620px) { .project-note ol { grid-template-columns: 1fr } }
+
+
+@media (min-width: 621px) {
+  .overworld { max-width: 1160px; margin-inline: auto }
+  .map-viewport { height: clamp(310px,calc(100svh - 305px),540px) }
+}
+
+
+@media (max-width:620px) {
+  .dpad .quiet { min-width: 44px }
+}
+@media (max-width:350px) {
+  .map-buttons { flex-wrap: wrap }
+  .map-buttons > .primary { flex: 1 0 100% }
+}
+
+
+/* The counter on the map is the same place seen during the call. */
+.cinematic[data-scene-mode="call"] .cinematic-bg,
+.work-heading .scene-art {
+  background: url("./assets/lung-city.png") var(--station-x, 6%) 57% / 235% auto no-repeat;
+}
+.cinematic[data-station="1"], .work-heading[data-station="1"] { --station-x: 36% }
+.cinematic[data-station="2"], .work-heading[data-station="2"] { --station-x: 72% }
+.cinematic[data-station="3"], .work-heading[data-station="3"] { --station-x: 99% }
+.work-heading .scene-art { background-position-y: 58% }
+.cinematic[data-scene-mode="call"] .cast.doctor {
+  width: min(25%,246px); bottom: auto; top: 19%; right: 12%; border: 1px solid #88bcb0;
+  border-radius: 8px; mask-image: none; background-color: #162a34;
+  box-shadow: 0 0 0 4px #20313ce6, 0 12px 21px #141e28;
+}
+.cinematic[data-scene-mode="call"] .cast.doctor::after {
+  content: "診療室 · 通話中"; position: absolute; left: 6px; bottom: 6px;
+  padding: 3px 6px; background: #112932ed; color: #d0f2e9; border: 1px solid #4e8279; border-radius: 4px;
+  font-size: .71rem; transform: scaleX(-1);
+}
+.report-grid { align-items: start }
+@media (max-width:620px) {
+  .cinematic[data-scene-mode="call"] .cinematic-bg,
+  .work-heading .scene-art { background-position-x: var(--station-narrow,14%); background-size: auto 155% }
+  .cinematic[data-station="1"], .work-heading[data-station="1"] { --station-narrow: 40% }
+  .cinematic[data-station="2"], .work-heading[data-station="2"] { --station-narrow: 67% }
+  .cinematic[data-station="3"], .work-heading[data-station="3"] { --station-narrow: 93% }
+  .work-heading .scene-art { background-size: 220% auto }
+  .cinematic[data-scene-mode="call"] .cast.doctor { width: 38%; top: 24%; right: 8% }
+  .cinematic[data-scene-mode="call"] .cast.doctor::after { font-size: .61rem }
+}
+
