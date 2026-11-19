@@ -1,5 +1,7 @@
 # 最後一口呼吸
 
+[線上試玩](https://smilepatrinus.github.io/last-breath-exhibit/)
+
 一款公開展示肺部 mNGS 病原判讀研究流程的網頁遊戲。玩家從一張白色念珠菌讀數最高的定序報告出發，追查同一天核發的培養單來自哪一份檢體。遊戲以模擬病例 D07 串起四關。
 
 ## 開始調查
@@ -42,4 +44,5 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 ## GitHub Pages
 
 將解壓後的 `index.html`、JavaScript、CSS、`assets/`、`.nojekyll` 和說明放在獨立 repo 的分支根目錄。在 **Settings → Pages** 選 **Deploy from a branch**，選該分支的 **/(root)**。 [GitHub Pages 官方設定說明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
+
 
