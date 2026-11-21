@@ -237,6 +237,7 @@
   function fireDebate(id) {
     if (state.view !== "debate" || state.debate.shotPending) return;
     if (!window.BreathDebateData.evaluate(state.debate,id)) return;
+    if (debateControl && !debateControl.canAim(id)) return;
     state.debate.shotPending = true;
     const resolve = () => {
       state.debate.shotPending = false;
@@ -486,6 +487,7 @@
     },
     "debate-hit": fireDebate,
     "debate-focus": () => debateControl?.focus(),
+    "debate-motion": () => debateControl?.motion(),
     "debate-pause": () => debateControl?.pause(),
     "debate-replay": () => debateControl?.replay(),
     "debate-evidence": () => {

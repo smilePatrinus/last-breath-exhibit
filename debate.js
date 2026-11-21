@@ -1,6 +1,9 @@
 (function () {
   "use strict";
   const data=window.BreathDebateData;
+  function reducedMotion(state) {
+    return state.motion === "reduced" || (!state.motion && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
   function render(state,button,html) {
     if(state.phase==="complete") return '<section class="panel debate-complete"><p class="eyebrow">議論結束 · 四段推論已核對</p>'+
       '<h2>讓證據能說到的地方，成為報告的界線。</h2><ol>'+state.results.map(item=>'<li><strong>'+
@@ -21,7 +24,7 @@
       html(selected.body)+'</p><p class="hint">'+html(selected.source)+'</p><p class="reference">裝填的言彈會用這份紀錄對照發言。</p></section>';
     if(state.feedback) {
       const feedback=state.feedback,card=state.cards.find(item=>item.id===feedback.evidence);
-      overlay='<section class="debate-feedback '+(feedback.ok?"success":"retry")+
+      overlay='<section class="debate-feedback '+(feedback.ok?"success "+round.mode:"retry")+
         '" role="alertdialog" aria-modal="true" aria-labelledby="debate-feedback-title">'+
         '<div class="debate-cut-in" aria-hidden="true"></div><p class="eyebrow">'+(feedback.ok?"偵探 · 提出證據":"偵探 · 心想")+
         '</p><h2 id="debate-feedback-title">'+html(feedback.title)+'</h2><p>'+html(feedback.body)+'</p>'+
@@ -34,11 +37,13 @@
     return '<section class="debate-mission"><div><p class="eyebrow">言彈議論 · '+(state.index+1)+' / '+state.rounds.length+
       '</p><h2>'+html(round.title)+'</h2><p>'+html(round.mission)+'</p></div><span class="debate-mode '+round.mode+'">'+
       (round.mode==="agree"?"藍色 · 提出支持":"黃色 · 指出矛盾")+'</span></section>'+
-      '<section class="debate-board '+round.mode+'" aria-label="言彈議論">'+
-      '<div class="debate-arena" tabindex="0" aria-label="議論舞台，Q E 切換言彈，空白鍵集中，Enter 對目前標記發射">'+
+      '<section class="debate-board '+round.mode+' motion-'+(reducedMotion(state)?"reduced":"full")+'" aria-label="言彈議論">'+
+      '<div class="debate-arena'+(ready?' is-ready':'')+'" tabindex="0" aria-label="議論舞台，Q E 切換言彈，空白鍵集中，Enter 對目前標記發射">'+
         '<div class="debate-ring" aria-hidden="true"></div><div class="debate-detective" aria-hidden="true"></div>'+
         '<div class="debate-projection" aria-hidden="true"><i></i><i></i><i></i></div>'+
-        '<div class="debate-speaker"><span class="debate-voice">案卷回聲</span><span class="debate-flow-label">自動議論 · 可重聽</span></div>'+
+        '<div class="debate-speed-lines" aria-hidden="true"></div><div class="debate-echo" aria-hidden="true"></div>'+
+        '<div class="debate-speaker"><span class="debate-voice">案卷回聲</span><div class="debate-flow-tools"><span class="debate-flow-label">自動議論 · 可重聽</span>'+
+        button(reducedMotion(state)?"動態：低":"動態：強","debate-motion","",{kind:"debate-motion",attrs:' aria-label="切換強動態與低動態"'})+'</div></div>'+
         '<div class="debate-utterance" aria-live="polite" aria-atomic="true"></div>'+
         '<p class="debate-aim-hint">裝填證據，瞄準'+(round.mode==="agree"?"藍色":"黃色")+'片語</p>'+
         '<div class="debate-crosshair" aria-hidden="true"></div>'+
@@ -70,8 +75,10 @@
     const status=root.querySelector(".debate-live-note");
     const aim=root.querySelector(".debate-crosshair");
     const pausedLabel=root.querySelector(".debate-pause-label");
+    const board=root.querySelector(".debate-board");
+    const echo=root.querySelector(".debate-echo");
+    const motionButton=root.querySelector('[data-action="debate-motion"]');
     const round=data.current(state);
-    const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
     let last=0,raf=0,stopped=false,shown=-1,held=false,shotTimer=0,impactTimer=0;
     const locked=()=>state.phase!=="running" || state.feedback || state.drawer || state.shotPending || document.querySelector("dialog[open]");
     function updateLine() {
@@ -79,6 +86,8 @@
       if(index===shown) return;
       shown=index;
       const statement=round.lines[index];
+      const previous=round.lines[(index+round.lines.length-1)%round.lines.length];
+      echo.textContent=previous.before+previous.target+previous.after;
       utterance.replaceChildren(document.createTextNode(statement.before));
       if(statement.target) {
         const target=document.createElement("button");
@@ -91,8 +100,6 @@
       utterance.append(document.createTextNode(statement.after));
       arena.dataset.line=statement.id;
       arena.dataset.statement=String(index+1);
-      root.querySelector(".debate-flow-label").textContent="發言 "+(index+1)+" / "+round.lines.length+
-        (state.elapsed>=4800*round.lines.length?" · 再次議論":" · 自動議論");
     }
     function draw(now) {
       if(stopped) return;
@@ -100,10 +107,45 @@
       if(!locked() && !state.paused && !document.hidden) state.elapsed+=delta*((held||state.focus)?0.25:1);
       updateLine();
       const progress=(state.elapsed%4800)/4800;
-      const drift=reduced?0:(arena.clientWidth<500?10:46)*(1-2*progress);
-      const opacity=reduced||state.paused||locked()?1:Math.min(1,0.4+progress*8,0.4+(1-progress)*8);
-      utterance.style.setProperty("--drift",drift+"px");
-      utterance.style.opacity=String(opacity);
+      const reduced=reducedMotion(state);
+      const width=arena.clientWidth,height=arena.clientHeight;
+      const textWidth=utterance.offsetWidth,textHeight=utterance.offsetHeight;
+      const direction=shown%2 ? -1 : 1;
+      const travel=Math.max(12,(width-textWidth)/2-14);
+      const outside=(width+textWidth)/2+45;
+      let drift,scale,opacity;
+      if(progress<0.15) {
+        const t=progress/0.15,ease=1-Math.pow(1-t,3);
+        drift=outside+(travel-outside)*ease;scale=1.13-0.13*ease;opacity=Math.min(1,t*3);
+      } else if(progress<0.84) {
+        const t=(progress-0.15)/0.69;
+        drift=travel*(1-2*t);scale=1;opacity=1;
+      } else {
+        const t=(progress-0.84)/0.16;
+        drift=-travel-(outside-travel)*t*t;scale=1-0.08*t;opacity=1-t;
+      }
+      const angle=[-2.5,2,-1.5,2.5][shown];
+      const lane=[0.38,0.54,0.36,0.48][shown];
+      const top=Math.max(74,Math.min(height-textHeight-76,height*lane-textHeight/2));
+      const playing=state.phase==="running";
+      const visual=reduced||!playing?0:drift*direction;
+      const hint=!playing?"待開始":state.feedback?"已命中":state.drawer?"查看證據":state.paused?"已暫停":
+        reduced?"低動態":held||state.focus?"集中慢速":"流動中";
+      root.querySelector(".debate-flow-label").textContent=hint+" · "+(shown+1)+" / "+round.lines.length+
+        (state.elapsed>=4800*round.lines.length?" · 重播":"");
+      board.classList.toggle("motion-reduced",reduced);
+      board.classList.toggle("motion-full",!reduced);
+      if(motionButton) motionButton.textContent=reduced?"動態：低":"動態：強";
+      utterance.style.top=(reduced?height*.32:top)+"px";
+      utterance.style.setProperty("--tilt",(reduced?0:angle)+"deg");
+      utterance.style.setProperty("--text-scale",reduced?1:scale);
+      utterance.style.setProperty("--drift",visual+"px");
+      utterance.style.opacity=String(reduced||!playing?1:opacity);
+      echo.style.opacity=String(!reduced&&playing&&state.elapsed>=4800?Math.max(0,0.2-progress*.65):0);
+      echo.style.transform="translate("+(-direction*(width*.15+progress*width)) +"px,0) rotate("+(-angle)+"deg)";
+      echo.style.top=(height*(shown%2?.26:.66))+"px";
+      arena.style.setProperty("--rush",!reduced&&playing&&!state.paused&&!locked()?0.12+(progress<.15||progress>.84?.2:0):0);
+      arena.style.setProperty("--scene-shift",(reduced?0:-visual*.025)+"px");
       arena.classList.toggle("concentrating",Boolean(held||state.focus));
       focusButton?.setAttribute("aria-pressed",String(Boolean(held||state.focus)));
       if(focusButton) focusButton.textContent=held||state.focus?"集中中 · 慢速":"集中 · 慢速";
@@ -159,9 +201,19 @@
     arena.addEventListener("click",click);
     updateLine();raf=requestAnimationFrame(draw);
     return {
+      canAim(id){
+        const target=utterance.querySelector('[data-value="'+id+'"]');
+        if(!target) return false;
+        const box=arena.getBoundingClientRect(),rect=target.getBoundingClientRect();
+        const visibleWidth=Math.min(box.right,rect.right)-Math.max(box.left,rect.left);
+        const visibleHeight=Math.min(box.bottom,rect.bottom)-Math.max(box.top,rect.top);
+        const visible=visibleWidth>=Math.min(34,rect.width*.4) && visibleHeight>=Math.min(24,rect.height*.5);
+        if(!visible)status.textContent="等標記片語進入畫面，再瞄準發射。";
+        return visible;
+      },
       impact(id,resolve){
         const target=utterance.querySelector('[data-value="'+id+'"]');
-        if(!target || reduced) {resolve();return;}
+        if(!target || reducedMotion(state)) {resolve();return;}
         const box=arena.getBoundingClientRect(),rect=target.getBoundingClientRect();
         const from={x:box.width*.1,y:box.height*.9};
         const to={x:rect.x+rect.width/2-box.x,y:rect.y+rect.height/2-box.y};
@@ -170,11 +222,13 @@
         projectile.style.setProperty('--flight-x',(to.x-from.x)+'px');
         projectile.style.setProperty('--flight-y',(to.y-from.y)+'px');
         projectile.style.setProperty('--flight-angle',Math.atan2(to.y-from.y,to.x-from.x)+'rad');
+        arena.style.setProperty('--impact-x',to.x+'px');arena.style.setProperty('--impact-y',to.y+'px');
         arena.classList.add('impact');
         target.classList.add('target-hit');
-        impactTimer=setTimeout(resolve,260);
+        impactTimer=setTimeout(resolve,420);
       },
       focus(){if(!locked())state.focus=!state.focus;},
+      motion(){if(!state.shotPending && !state.feedback)state.motion=reducedMotion(state)?"full":"reduced";},
       pause(){if(!locked())state.paused=!state.paused;},
       replay(){if(!locked()){state.elapsed=0;state.paused=false;status.textContent="從本段第一句重新播放。";}},
       stop(){
