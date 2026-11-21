@@ -76,7 +76,7 @@
     {num:"01",name:"失序的紀錄",short:"整理紀錄",scene:"archive",place:"肺城・資料檔案區"},
     {num:"02",name:"判讀迷宮",short:"規則迷宮",scene:"counter",place:"肺城・判讀迷宮"},
     {num:"03",name:"候選複核室",short:"查閱文獻",scene:"review",place:"肺城・候選複核室"},
-    {num:"04",name:"交回調查報告",short:"核對報告",scene:"review",place:"肺城・結案桌"}
+    {num:"04",name:"言彈議論",short:"言彈議論",scene:"review",place:"肺城・回聲議場"}
   ];
 
   function chooseScope(record) {

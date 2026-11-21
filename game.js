@@ -14,16 +14,16 @@
   const fields = { id: "檢體編號", date: "採檢時間", type: "檢體類型", result: "檢驗結果" };
   const seals = { same: "同檢體證據", other: "其他檢體參考" };
   let state, drag, swipe, ignoreClickUntil = 0, resetToast, audio;
-  let muted = true, mapControl, mazeControl;
-  const activity = ["gather","maze","literature","report"];
+  let muted = true, mapControl, mazeControl, debateControl;
+  const activity = ["gather","maze","literature","debate"];
   const sceneViews = ["intro","brief","ending"];
 
   function reset() {
     tutorial.reset();
     state = {
       view: "title", chapter: -1, beat: 0, source: "excel", slide: "L02", draft: {}, token: "", slot: "",
-      records: [], filed: [], maze: null,
-      paper: 0, marks: [], kept: [], submitted: false, position: null, replied: false
+      records: [], filed: [], maze: null, debate: null, demo: false,
+      paper: 0, marks: [], kept: [], submitted: false, position: null
     };
     render(true);
   }
@@ -79,6 +79,8 @@
       state.maze = window.BreathMazeRules.create();
       state.filed = state.records.map((record) => ({...record,scope:content.chooseScope(record)}));
     }
+    if (view === "debate" && !state.debate)
+      state.debate = window.BreathDebateData.create(state.records,state.maze.results,state.kept);
     state.view = view;
     state.chapter = chapter;
     state.beat = 0;
@@ -98,6 +100,8 @@
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
       '<p class="hero-copy">檢驗報告有好幾個名字。<br>哪一個和這次感染有關？</p>' +
       button("開始調查 <span aria-hidden=\"true\">→</span>", "start", "", {kind:"primary hero-button"}) +
+      '<div class="hero-demo">' + button("試玩第四關 · 言彈議論","demo-debate") +
+      '<p class="hero-meta">使用已整理的模擬案卷，直接體驗議論。</p></div>' +
       '<p class="hero-meta">四關 · 可用滑鼠、鍵盤或觸控</p></div></section>';
   }
 
@@ -215,6 +219,56 @@
       '</aside></div>';
   }
 
+  function debate() {
+    return heading("言彈議論","用前三關找到的證據，指出矛盾或補上支持。") +
+      (state.demo ? '<p class="reference debate-demo-note">第四關試玩 · 本輪使用預先整理的模擬案卷。</p>' : "") +
+      window.BreathDebate.render(state.debate,button,html);
+  }
+
+  function selectDebateAmmo(id,keyboard=false) {
+    if (state.view !== "debate" || state.debate.feedback || state.debate.shotPending || state.debate.phase === "complete") return;
+    const round = window.BreathDebateData.current(state.debate);
+    if (!round.ammo.includes(id) || !state.debate.cards.some(card => card.id === id)) return;
+    state.debate.selected = id;
+    render(false);
+    if (keyboard) screen.querySelector(".debate-arena")?.focus({preventScroll:true});
+  }
+
+  function fireDebate(id) {
+    if (state.view !== "debate" || state.debate.shotPending) return;
+    if (!window.BreathDebateData.evaluate(state.debate,id)) return;
+    state.debate.shotPending = true;
+    const resolve = () => {
+      state.debate.shotPending = false;
+      const result = window.BreathDebateData.shoot(state.debate,id);
+      if (!result) return;
+      play(result.ok ? "done" : "tick");
+      render(false);
+    };
+    if (debateControl) debateControl.impact(id,resolve);
+    else resolve();
+  }
+
+  function demoDebate() {
+    reset();
+    state.demo = true;
+    state.records = content.records.filter(record => ["L01","L02"].includes(record.id));
+    state.filed = state.records.map(record => ({...record,scope:content.chooseScope(record)}));
+    state.maze = window.BreathMazeRules.create();
+    while (Object.keys(state.maze.results).length < 3) {
+      const gate = window.BreathMazeRules.current(state.maze);
+      state.maze.selected = gate.proof;
+      window.BreathMaze.choose(state.maze,gate.right,state.records);
+      window.BreathMaze.next(state.maze);
+    }
+    state.kept = content.literature.filter(paper => paper.id === "02").map(paper => ({
+      id:paper.id,title:paper.title,source:paper.source,note:paper.note,
+      quotes:paper.segments.filter(segment => segment.key === "site").map(segment => segment.text),
+      excerpt:paper.segments.map(segment => segment.text).join("")
+    }));
+    go("brief",3);
+  }
+
   function reportCard(item) {
     const evidence = window.BreathMazeRules.cards(state.records,item.id);
     const decisions = (item.decisions || []).map((entry) => {
@@ -244,14 +298,17 @@
   }
 
   function report() {
-    return heading(state.submitted ? "調查報告" : "交回調查報告", "每個候選都附上來源與理由。送出前，回覆醫師的最後一個問題。") +
-      (state.replied ? '<p class="reference report-reply">已回覆醫師 · 白色念珠菌的培養來自 L01 的痰液，11/18 是核發日。</p>' :
-        '<section class="panel report-reply"><p class="eyebrow">醫師來電</p><h2>「白色念珠菌的培養，是哪一份檢體？」</h2>' +
-        '<p class="hint">展開白色念珠菌的卡片，對照檢體類型與採檢時間。</p><div class="actions">' +
-        button("L01 · 痰液","reply","L01") + button("L02 · BAL","reply","L02") + '</div></section>') +
-      '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept, state.maze?.results).map(reportCard).join("") + '</div>' +
+    const debateLog = state.debate?.results.length ?
+      '<details class="panel debate-report-log"><summary>查看言彈議論留下的核對紀錄</summary><ol>' +
+      state.debate.results.map(item => '<li><strong>' + html(item.title) + '</strong><p>' + html(item.correction) +
+        '</p><small>依據：' + html(state.debate.cards.find(card => card.id === item.evidence)?.title || item.evidence) + '</small></li>').join("") +
+      '</ol></details>' : "";
+    return heading(state.submitted ? "調查報告" : "交回調查報告", "原始來源、候選判讀路徑與議論核對結果，放進同一份案卷。") +
+      (state.demo ? '<p class="reference">第四關試玩 · 使用預先整理的模擬案卷。</p>' : "") +
+      '<p class="reference report-reply">已完成四段證據核對。保留成立的支持，也留下物種與致病角色仍待確認的地方。</p>' +
+      debateLog + '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept, state.maze?.results).map(reportCard).join("") + '</div>' +
       '<div class="report-footer"><p>報告會附上原單、保留的文獻與尚待確認的線索。</p>' +
-      button(state.submitted ? "返回結案畫面" : "送出調查報告 →", state.submitted ? "back-done" : "submit", "", {kind:"primary",attrs:state.replied ? "" : " disabled"}) +
+      button(state.submitted ? "返回結案畫面" : "送出調查報告", state.submitted ? "back-done" : "submit", "", {kind:"primary",attrs:state.debate?.phase === "complete" ? "" : " disabled"}) +
       '</div>';
   }
 
@@ -263,6 +320,7 @@
       ["交付可追溯的結果","回到原始資料核對，保留仍待查證的候選與理由。"]
     ];
     return '<section class="hero last">' + art("room") + '<div class="hero-content"><p class="eyebrow">調查報告已送達診療室</p>' +
+      (state.demo ? '<p class="reference debate-demo-note">第四關試玩完成 · 使用預先整理的模擬案卷。</p>' : "") +
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
       '<div class="closing-copy"><p>你整理了 ' + state.records.length + ' 份採檢紀錄，完成 ' + Object.keys(state.maze.results).length +
       ' 條候選判讀路徑，並保留 ' + state.kept.length + ' 篇可供對照的文獻。</p>' +
@@ -275,9 +333,11 @@
       '</ul><p class="hint">D07 的檢體、日期與檢驗數值皆為模擬。公開文獻在各卡片另有標示。</p></details>';
   }
 
-  const views = {title, travel, gather, maze, literature, report, done};
+  const views = {title, travel, gather, maze, literature, debate, report, done};
 
   function render(focus) {
+    debateControl?.stop();
+    debateControl = null;
     mazeControl?.stop();
     mazeControl = null;
     const before = document.activeElement?.closest?.("[data-action]");
@@ -319,6 +379,11 @@
         (position) => {state.maze.position = position;});
       const dialogButton = screen.querySelector(".maze-message button");
       if (dialogButton) dialogButton.focus({preventScroll:true});
+    }
+    if (state.view === "debate") {
+      debateControl = window.BreathDebate.mount(screen,state.debate,fireDebate,selectDebateAmmo);
+      const messageButton = screen.querySelector(".debate-feedback button");
+      if (messageButton) messageButton.focus({preventScroll:true});
     }
     tutorial.update(state);
   }
@@ -410,6 +475,36 @@
   }
   const actions = {
     start: () => { go("intro"); play("phone"); },
+    "demo-debate": demoDebate,
+    "debate-ammo": selectDebateAmmo,
+    "debate-start": () => {
+      if (!state.debate.selected || state.debate.phase !== "ready") return;
+      state.debate.phase = "running";
+      render(false);
+      screen.querySelector(".debate-arena")?.focus({preventScroll:true});
+      screen.querySelector(".debate-board")?.scrollIntoView({block:"start"});
+    },
+    "debate-hit": fireDebate,
+    "debate-focus": () => debateControl?.focus(),
+    "debate-pause": () => debateControl?.pause(),
+    "debate-replay": () => debateControl?.replay(),
+    "debate-evidence": () => {
+      if (!state.debate.selected || state.debate.feedback || state.debate.shotPending) return;
+      state.debate.drawer = true;
+      render(false);
+      screen.querySelector('[data-action="debate-close"]')?.focus({preventScroll:true});
+      screen.querySelector(".debate-arena")?.scrollIntoView({block:"start"});
+    },
+    "debate-close": () => {state.debate.drawer=false;render(false);},
+    "debate-next": () => {
+      window.BreathDebateData.next(state.debate);
+      render(true);
+      screen.querySelector(".debate-board")?.scrollIntoView({block:"start"});
+    },
+    "debate-report": () => {
+      if (state.debate.phase !== "complete") return;
+      go("report",3);
+    },
     skip: () => go("travel", 0),
     advance,
     "walk-goal": () => mapControl?.walkTo(),
@@ -493,14 +588,7 @@
     "review-next": () => go("travel", 2),
     mark: (value) => mark(Number(value)),
     classify,
-    reply: (value) => {
-      if (value !== "L01") return toast("11/18 是培養的核發日。翻到白色念珠菌的院端紀錄，看看採檢時間與檢體類型。","error");
-      state.replied = true;
-      render(false);
-      screen.querySelector('[data-action="submit"]')?.focus({preventScroll:true});
-      toast("來源已回覆醫師。","success");
-    },
-    submit: () => { if (state.replied) { state.submitted = true; go("ending"); play("rift"); } },
+    submit: () => { if (state.debate?.phase === "complete") { state.submitted = true; go("ending"); play("rift"); } },
     "see-report": () => go("report", 3),
     "back-done": () => go("done"),
     replay: reset
@@ -514,6 +602,11 @@
 
   function keydown(event) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || dialog.open) return;
+    if (state.view === "debate" && state.debate.feedback && event.key === "Tab") {
+      event.preventDefault();
+      screen.querySelector(".debate-feedback button")?.focus();
+      return;
+    }
     if (state.view === "maze" && state.maze.feedback && event.key === "Tab") {
       event.preventDefault();
       screen.querySelector(".maze-message button")?.focus();
@@ -619,11 +712,5 @@
   window.addEventListener("pointerup", (event) => endPointer(event));
   window.addEventListener("pointercancel", (event) => endPointer(event,true));
   reset();
+  if (new URLSearchParams(location.search).get("demo") === "debate") demoDebate();
 })();
-
-
-
-
-
-
-

@@ -85,25 +85,32 @@
       "點「收入案卷」，或將卡片向右滑。圈選文字、摘要和限制都會留到最後的調查報告。");
   }
 
+  function debate() {
+    const session = state.debate;
+    if (!session || session.feedback || session.drawer || session.phase === "running") return null;
+    if (session.phase === "complete") return step("debate-finished",action("debate-report"),"把核對紀錄帶進報告",
+      "剛才支持或修正的句子都留下了依據。組成報告後，就能把原始紀錄和仍待確認的地方交回診療室。");
+    if (session.index > 0) return null;
+    if (!acknowledged.has("debate-read")) return step("debate-read",".debate-mission","先看本段要找什麼",
+      "發言會自動流動。黃色片語可用證據反駁，藍色片語可用證據支持。先讀本段任務，再裝填言彈。","挑選言彈");
+    if (!session.selected) return step("debate-ammo",".debate-ammo","選一枚證據言彈",
+      "點選一份紀錄裝填；按「查看證據」可以重讀原始內容。議論中也能隨時切換。");
+    return step("debate-start",action("debate-start"),"開始後，瞄準標記片語",
+      "讀完幾句話，找出要反駁的那一段，用裝填的證據點擊發射。可用「集中」放慢、「暫停」閱讀；沒抓到可以重聽。");
+  }
+
   function report() {
     if (state.submitted) return step("report-return",".report-card > summary","查看每個候選的來源",
       "展開任一候選，可以重讀原始紀錄、文獻和分流理由。","結束教學");
-    if (state.replied) return step("report-send",action("submit"),"回覆已寫進案卷",
-      "按「送出調查報告」，把候選的理由、原始來源和待確認的問題一起交回診療室。");
-    const card = screen.querySelector("#candidate-B");
-    if (!card?.open) return step("report-expand","#candidate-B > summary","先打開白色念珠菌的案卷",
-      "醫師問的是那張培養來自哪份檢體。點這張卡片展開，找到原始紀錄的編號與採檢時間。");
-    if (!acknowledged.has("report-read")) return step("report-read","#candidate-B .report-body > .citations","沿來源找回檢體",
-      "這裡列出檢體編號、類型、採檢日與核發日，也保留了 Excel 儲存格和 PPT 頁碼。對好後再回覆醫師。","回覆醫師");
-    return step("report-reply",".report-reply .actions","用剛才找到的資料回覆",
-      "點選與原始培養紀錄一致的檢體。選錯還能展開案卷重新核對。");
+    return step("report-send",action("submit"),"核對結果已寫進案卷",
+      "可展開議論紀錄與候選卡重讀依據，再按「送出調查報告」，把已知與待確認的問題一起交回診療室。");
   }
 
   function lesson() {
     if (!state) return null;
     if (state.view === "travel") return step("travel-go",action("walk-goal"),"先走到這關的目的地",
       "你可以按這個按鈕，讓偵探走到櫃檯。也能用方向鍵、WASD 或點地圖移動；到站後會接上劇情和操作教學。");
-    const lessons = {gather,maze,literature,report};
+    const lessons = {gather,maze,literature,debate,report};
     return lessons[state.view]?.() || null;
   }
 
@@ -199,7 +206,7 @@
 
   function update(snapshot) {
     state = snapshot;
-    const supported = ["travel","gather","maze","literature","report"].includes(state.view);
+    const supported = ["travel","gather","maze","literature","debate","report"].includes(state.view);
     const nextGroup = supported ? state.view : "";
     help.hidden = !supported;
     if (nextGroup !== group) {
