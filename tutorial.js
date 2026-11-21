@@ -12,7 +12,7 @@
 
   function gather() {
     if (state.records.length) return step("gather-done",".collected","第一份紀錄已完成",
-      "你已把 Excel 和 PPT 接成一張可追查的紀錄。接著整理另一份在收件窗內的資料，完成兩份就能前往窗口。","換我試試");
+      "你已把 Excel 和 PPT 接成一張可追查的紀錄。接著整理另一份在收件窗內的資料，完成兩份就能進入判讀迷宮。","換我試試");
     const selectedId = state.token.split(":")[0];
     const picked = window.BreathContent.records.find((record) =>
       record.id === (state.draft.id?.record.id || selectedId));
@@ -93,7 +93,7 @@
     const card = screen.querySelector("#candidate-B");
     if (!card?.open) return step("report-expand","#candidate-B > summary","先打開白色念珠菌的案卷",
       "醫師問的是那張培養來自哪份檢體。點這張卡片展開，找到原始紀錄的編號與採檢時間。");
-    if (!acknowledged.has("report-read")) return step("report-read","#candidate-B .citations","沿來源找回檢體",
+    if (!acknowledged.has("report-read")) return step("report-read","#candidate-B .report-body > .citations","沿來源找回檢體",
       "這裡列出檢體編號、類型、採檢日與核發日，也保留了 Excel 儲存格和 PPT 頁碼。對好後再回覆醫師。","回覆醫師");
     return step("report-reply",".report-reply .actions","用剛才找到的資料回覆",
       "點選與原始培養紀錄一致的檢體。選錯還能展開案卷重新核對。");
