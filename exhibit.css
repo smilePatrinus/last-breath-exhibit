@@ -29,8 +29,9 @@
   position: absolute; width: min(450px,46%); aspect-ratio: 1;
   bottom: 88px; --offset: -56px; --look: 1; --scale: .94;
   left: clamp(8px,5vw,80px);
-  background: url("./assets/portraits.png") var(--face) 0 / 300% 200% no-repeat;
-  mask-image: radial-gradient(ellipse 53% 67% at 50% 57%, black 46%, #000e 69%, transparent 100%);
+  background: url("./assets/portraits-pixel-v1.png") var(--face) 0 / 300% 200% no-repeat;
+  mask-image: none;
+  image-rendering: pixelated;
   filter: brightness(.65) saturate(.88) drop-shadow(0 17px 14px #0005);
   opacity: 0; transform: translateX(var(--offset)) scale(var(--scale)) scaleX(var(--look));
   transform-origin: center 82%;
@@ -46,7 +47,7 @@
 .cinematic[data-motion="cross"] .cast.detective { --offset: 69px; --scale: .86; opacity: .45 }
 .cinematic[data-scene-mode="call"] .cast.doctor {
   filter: brightness(.85) saturate(.63) sepia(.13) drop-shadow(0 0 17px #5bc8b659);
-  --scale: .9; mask-image: linear-gradient(#000e 0%,#000 65%,transparent 100%);
+  --scale: .9; mask-image: none;
 }
 .cinematic[data-scene-mode="call"][data-voice="doctor"] .cast.doctor { --scale: .98; animation: connection .32s ease }
 @keyframes connection { 45% { opacity: .65; filter: brightness(1.22) saturate(.45) } }
@@ -188,6 +189,8 @@
   .cinematic-dialogue { min-height: 163px; padding: 11px 12px; }
   .scene-actions .primary { padding-inline: 9px }
   .scene-prop { top: 15%; max-width: calc(100% - 20px) }
+  .cinematic.has-report { min-height: 650px }
+  .cinematic.has-report .scene-prop { top: 11% }
   .signal-paper { min-width: min(188px,67vw); padding-block: 6px }
   .prop-label { font-size: .77rem }
   .map-viewport { height: 340px }
@@ -259,4 +262,3 @@
   .cinematic[data-scene-mode="call"] .cast.doctor { width: 38%; top: 24%; right: 8% }
   .cinematic[data-scene-mode="call"] .cast.doctor::after { font-size: .61rem }
 }
-

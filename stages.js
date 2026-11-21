@@ -45,6 +45,7 @@
     root.dataset.motion = line.motion || "";
     root.dataset.scene = scene;
     root.dataset.voice = line.role;
+    root.classList.toggle("has-report",Boolean(line.report));
     root.classList.toggle("has-rift",Boolean(line.rift));
     root.classList.toggle("has-trace",Boolean(line.trace));
     root.classList.toggle("quiet-opening",mode === "intro" && state.beat === 0);
@@ -97,4 +98,3 @@
 
   window.BreathStages = {shell,update,lines,map};
 })();
-

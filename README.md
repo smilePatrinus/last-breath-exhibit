@@ -36,10 +36,10 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 - `story.js` 是兩人對話、內心戲、電話與道具的劇本。
 - `world.js` 提供四向移動、橋面邊界、鏡頭和站點觸發。角色在 `assets/lung-city.png` 的石板路上共用一套坐標。四方向各三格的走路圖放在 `assets/detective-walk.png`。
-- `stages.js` 負責過場、走圖介面與立繪切換。表情從原立繪圖選取，立繪同場保留並依發話者移動和明暗變化。
+- `stages.js` 負責過場、走圖介面與立繪切換。表情從像素立繪圖 `assets/portraits-pixel-v1.png` 選取，立繪同場保留並依發話者移動和明暗變化。
 - `content.js` 保存模擬病例和文獻，`documents.js` 產生工作表、PPT、檢驗報告及來源座標。`game.js` 控制關卡與報告。`styles.css`、`exhibit.css` 和 `dossier.css` 控制畫面。
 
-新增兩張素材透過內建 ImageGen 產製。地圖提示採用「連續石板路，檔案櫃、蓋章窗口、文獻架、結案桌依序開向走道，無角色與文字的俯視像素場景」。走路圖以原偵探造型為參考，使用「貝雷帽與黃圍巾，四個朝向，各三格步態，透明背景」。
+地圖、走路圖與像素立繪皆透過內建 ImageGen 產製。地圖提示採用「連續石板路，檔案櫃、蓋章窗口、文獻架、結案桌依序開向走道，無角色與文字的俯視像素場景」。走路圖以原偵探造型為參考，使用「貝雷帽與黃圍巾，四個朝向，各三格步態，透明背景」。
 
 演出參考《活俠傳》官方畫面中的雙人立繪與對話框呈現。走圖參考 RPG Maker 的移動路線與到站事件。教學以對話先提出問題，再讓玩家在原始文件中用一次操作驗證。 [《活俠傳》官方預告](https://www.youtube.com/watch?v=O3To9yxYRvU) · [RPG Maker MZ 移動路線手冊](https://rpgmakerofficial.com/product/MZ_help-en/01_10_06_01.html) · [George Fan 的教學設計演講](https://www.gdcvault.com/play/1015541/Playtesting-for-Game)
 
