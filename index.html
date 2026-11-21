@@ -8,14 +8,16 @@
   <title>最後一口呼吸｜肺城調查錄</title>
   <link rel="icon" type="image/svg+xml" href="./assets/mark.svg">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./exhibit.css?v=3">
-  <link rel="stylesheet" href="./dossier.css?v=3">
-  <script defer src="./content.js?v=3"></script>
-  <script defer src="./documents.js?v=3"></script>
-  <script defer src="./story.js?v=3"></script>
-  <script defer src="./world.js?v=3"></script>
-  <script defer src="./stages.js?v=3"></script>
-  <script defer src="./game.js?v=3"></script>
+  <link rel="stylesheet" href="./exhibit.css?v=4">
+  <link rel="stylesheet" href="./dossier.css?v=4">
+  <script defer src="./content.js?v=4"></script>
+  <script defer src="./documents.js?v=4"></script>
+  <script defer src="./story.js?v=4"></script>
+  <script defer src="./world.js?v=4"></script>
+  <script defer src="./stages.js?v=4"></script>
+  <link rel="stylesheet" href="./tutorial.css?v=4">
+  <script defer src="./tutorial.js?v=4"></script>
+  <script defer src="./game.js?v=4"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳至遊戲內容</a>
@@ -24,6 +26,7 @@
       <div class="wordmark"><img src="./assets/mark.svg" alt="" width="33" height="33"><span>最後一口呼吸<small>肺城調查錄</small></span></div>
       <nav class="steps" aria-label="調查進度" id="steps"></nav>
       <div class="header-actions">
+        <button id="help" class="quiet small" type="button" aria-pressed="false" hidden>看操作教學</button>
         <button id="sound" class="quiet small" type="button" aria-pressed="false">音效：關</button>
         <button id="restart" class="quiet small" type="button" hidden>重新開始</button>
       </div>

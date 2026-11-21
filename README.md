@@ -11,7 +11,9 @@
 - 對話以「繼續」、右方向鍵或空白鍵推進。開場可略過。
 - 地圖可用方向鍵或 WASD 移動，也可點石板路、地圖上的目的地或底部「走到…」按鈕。到站會接上該關的劇情。
 - 地圖與關卡支援觸控。拖曳、蓋章和滑卡各有點按操作。手機也可直接點地圖的方向按鈕。
-- 每關的「醫師留言」保留這關的目的和操作。「重新開始」會清除本輪紀錄。
+- 每關第一次操作會出現框選教學。提示會跟著你實際完成的動作前進，先帶一份紀錄或一張文件，再讓你繼續練習。
+- 可按「略過教學」關閉提示，也可從頂端「看操作教學」重新打開當前步驟。按 Esc 也能收起教學。
+- 每關的「醫師留言」保留這關的目的和操作。「重新開始」會清除本輪紀錄，並重開各關教學。
 
 ## 關卡
 
@@ -44,5 +46,3 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 ## GitHub Pages
 
 將解壓後的 `index.html`、JavaScript、CSS、`assets/`、`.nojekyll` 和說明放在獨立 repo 的分支根目錄。在 **Settings → Pages** 選 **Deploy from a branch**，選該分支的 **/(root)**。 [GitHub Pages 官方設定說明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
-
-

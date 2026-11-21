@@ -1,0 +1,31 @@
+
+body.tutorial-active { padding-bottom: var(--tutorial-space,220px) }
+.tutorial-spotlight {
+  position: fixed; z-index: 42; pointer-events: none; border: 3px solid #f7cc76;
+  border-radius: 9px; box-shadow: 0 0 0 200vmax #07101a9e, 0 0 16px #ffcd6566;
+}
+.tutorial-panel {
+  position: fixed; z-index: 43; right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom)); width: min(380px,calc(100% - 24px));
+  padding: 15px 17px; border: 1px solid #f1cd8b; border-radius: 10px;
+  color: #f8f1e2; background: #142b36; box-shadow: 0 10px 35px #0009; overflow-y: auto;
+}
+.tutorial-label { color: #a6ded0; font-size: .82rem; font-weight: 700; margin-bottom: 5px }
+.tutorial-panel h2 { font-size: 1.13rem; line-height: 1.35; color: #ffde9d; margin-bottom: 7px }
+.tutorial-copy > p { font-size: 1rem; line-height: 1.6; color: #edf1e6 }
+.tutorial-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 12px }
+.tutorial-actions > button { min-height: 44px; font-size: .88rem }
+.tutorial-panel :focus-visible { outline-color: #a7eadb }
+.tutorial-active .toast { z-index: 44; bottom: calc(var(--tutorial-space,220px) + 8px) }
+#help { white-space: nowrap }
+@media (max-width:620px) {
+  .header-actions { flex-wrap: wrap; justify-content: flex-end }
+  .tutorial-panel { left: 12px; right: 12px; width: auto; padding: 12px 14px }
+  .tutorial-panel h2 { font-size: 1.06rem }
+  .tutorial-copy > p { font-size: .94rem; line-height: 1.55 }
+  .tutorial-actions { margin-top: 9px }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tutorial-spotlight { animation: tutorial-ring 1.3s ease-in-out infinite alternate }
+  @keyframes tutorial-ring { to { border-color:#fff1b6; box-shadow:0 0 0 200vmax #07101a9e,0 0 19px #ffcd6580 } }
+}

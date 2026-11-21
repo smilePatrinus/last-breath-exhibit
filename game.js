@@ -2,6 +2,7 @@
   "use strict";
   const content = window.BreathContent;
   const documents = window.BreathDocuments;
+  const tutorial = window.BreathTutorial;
   const plot = window.BreathStory;
   const stages = window.BreathStages;
   const screen = document.getElementById("screen");
@@ -18,6 +19,7 @@
   const sceneViews = ["intro","brief","ending"];
 
   function reset() {
+    tutorial.reset();
     state = {
       view: "title", chapter: -1, beat: 0, source: "excel", slide: "L02", draft: {}, token: "", slot: "",
       records: [], docket: 0, filed: [], pins: {}, zoom: false, seal: "", applied: "",
@@ -278,7 +280,7 @@
       html(paper.note) + '</span><span>標記：' + paper.quotes.map(html).join("、") +
       '</span><span>' + html(paper.excerpt) + '</span>' +
       (paper.source ? '<span>' + sourceLink(paper.source) + '</span>' : '<span>教學模擬摘要</span>') + '</li>').join("");
-    return '<details class="panel report-card" ' + (item.id === "C" ? "open" : "") + '><summary><span class="candidate">' +
+    return '<details id="candidate-' + item.id + '" class="panel report-card" ' + (item.id === "C" ? "open" : "") + '><summary><span class="candidate">' +
       item.id + '</span><span><strong>' + html(item.name) + '</strong><small>' + html(item.scientific) +
       '</small></span><span class="tag ' + item.grade + '">' + item.tier + '</span></summary>' +
       '<div class="report-body"><p>' + html(item.signal) + '</p><ol class="trail">' +
@@ -358,6 +360,7 @@
       Array.from(screen.querySelectorAll("[data-action]")).find((control) =>
         control.dataset.action === key.action && control.dataset.value === key.value)?.focus({preventScroll:true});
     }
+    tutorial.update(state);
   }
 
   function placeToken(token, slot) {

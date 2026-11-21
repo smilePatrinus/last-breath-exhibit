@@ -1,0 +1,269 @@
+(function () {
+  "use strict";
+  const screen = document.getElementById("screen");
+  const help = document.getElementById("help");
+  const chapters = window.BreathContent.chapter;
+  const visited = new Set();
+  const acknowledged = new Set();
+  const action = (name, value) => '[data-action="' + name + '"]' +
+    (value === undefined ? "" : '[data-value="' + value + '"]');
+  const step = (id, target, title, body, next = "") => ({id,target,title,body,next});
+  let state, group = "", active = false, current, target, frame = 0, needsScroll = false;
+
+  function gather() {
+    if (state.records.length) return step("gather-done",".collected","第一份紀錄已完成",
+      "你已把 Excel 和 PPT 接成一張可追查的紀錄。接著整理另一份在收件窗內的資料，完成兩份就能前往窗口。","換我試試");
+    const selectedId = state.token.split(":")[0];
+    const picked = window.BreathContent.records.find((record) =>
+      record.id === (state.draft.id?.record.id || selectedId));
+    const record = picked && window.BreathContent.fitWindow(picked) ? picked :
+      window.BreathContent.records.find((entry) => window.BreathContent.fitWindow(entry));
+    const missing = ["id","date","type","result"].find((key) => state.draft[key]?.record.id !== record.id);
+    if (!missing) return step("gather-collect",action("collect"),"把這份紀錄收進案卷",
+      "四格都來自 " + record.id + "。按「收錄這份紀錄」，來源的儲存格與投影片會一起留下。");
+    const labels = {id:"檢體編號",date:"採檢時間",type:"檢體類型",result:"檢驗結果"};
+    const token = record.id + ":" + missing;
+    if (state.token === token) return step("gather-place-" + missing,action("slot",missing),
+      "放進「" + labels[missing] + "」",
+      "你已選好來源資料。再點這個欄位放入，也可以直接把資料拖進來。");
+    const source = missing === "result" ? "ppt" : "excel";
+    if (state.source !== source) return step("gather-source-" + source,action("source",source),
+      missing === "result" ? "到 PPT 查這個檢體的報告" : "切回採檢 Excel",
+      missing === "result" ? "採檢清冊有編號、時間和類型。檢驗結果要從對應的 PPT 投影片取得。" :
+        "先從清冊抄錄 " + labels[missing] + "，用同一列把資料接起來。");
+    if (source === "ppt" && state.slide !== record.id) return step("gather-slide-" + record.id,
+      action("slide",record.id),"翻到相同檢體的投影片","點這張縮圖，核對報告裡的檢體編號是不是 " + record.id + "。");
+    const copy = {
+      id:"先點 Excel 裡的 " + record.id + "，再點紀錄表的「檢體編號」。這樣就知道這張卡在整理哪一次採檢。",
+      date:"點同一列的採檢時間。日期和時分會一起帶入，別把 PPT 上的核發日當成採檢日。",
+      type:"這格寫的是 " + record.type + "（" + record.sampleCode + "）。把檢體來源也帶到紀錄表。",
+      result:"確認報告編號，再點下方「帶入紀錄表」的結果。下一步把它放進檢驗結果欄。"
+    };
+    return step("gather-take-" + missing,action("token",token),"取出「" + labels[missing] + "」",copy[missing]);
+  }
+
+  function stamp() {
+    if (state.filed.length) return step("stamp-done",".file-paper h3","第一張已歸檔",
+      "接著用同樣方式審查下一張：標記兩個編號、選章、蓋章，再送出。每張都要重新對照 mNGS 參照件。","換我試試");
+    if (!state.pins.anchor) return step("stamp-anchor",action("pin","anchor"),"先標記 mNGS 的檢體",
+      "點參照件的 L02。這是本次調查要對照的檢體編號。");
+    if (!state.pins.file) return step("stamp-file",action("pin","file"),"再標記手上文件的檢體",
+      "點這份檢驗單的編號，把它和剛才的 L02 放在一起比較。");
+    const record = state.records[state.docket];
+    const rightSeal = window.BreathContent.chooseScope(record);
+    if (!state.seal || state.seal !== rightSeal) return step("stamp-choose",".stamp-tray","拿起一枚審查章",
+      "先比較兩個編號。相同就選「同檢體證據」，不同就選「其他檢體參考」。點章或把它拖到文件上。");
+    if (!state.applied) return step("stamp-apply",action("apply-seal"),"在文件上蓋章",
+      "你拿起了章，還要點這個蓋章位置留下章印。拖曳章到這裡也可以。");
+    return step("stamp-send",action("file"),"把審查完成的文件送出",
+      "按「送入歸檔口」完成這張文件。系統會核對章印，來源和你的檢體標記一起存入案卷。");
+  }
+
+  function routing() {
+    if (state.proof >= 2) return step("routing-done",".route-summary","文件開始影響候選的分流",
+      "這三張回條依照剛才核對的檢體與證據層級整理。看過理由後，就能帶仍有疑問的候選去查文獻。","繼續調查");
+    const id = "routing-read-" + state.proof;
+    if (!acknowledged.has(id)) return step(id,".evidence-line","先讀這一行原始結果",
+      "看看文字直接指名哪一個菌種，或只寫出一整個菌群。這裡要判斷的是檢驗回報到哪一層。","看選項");
+    return step("routing-answer-" + state.proof,".evidence-station .review-actions","選擇這行結果的回報層級",
+      "在這兩個選項中選一個。選錯時可以回頭讀原文，修正後再繼續。");
+  }
+
+  function literature() {
+    const paper = window.BreathContent.literature[state.paper];
+    if (state.paper >= 2) return step("literature-done",state.kept.length ? ".folder" : ".review-actions",
+      "接下來由你判讀",
+      "收入的摘要和限制會留在案卷夾。其餘文章也用同樣方式比對菌名與檢體，左滑略過、右滑收入，或使用下方按鈕。","換我試試");
+    if (!paper.fit) {
+      if (!acknowledged.has("literature-read")) return step("literature-read",".abstract .excerpt",
+        "先比對本案與這篇文章",
+        "本案是肺部 BAL 檢體，這篇卻研究血液和泌尿道來源。點摘要中有底色的文字，還可以查看線索提示。","我讀完了");
+      return step("literature-skip",action("classify","skip"),"略過這篇，看看下一篇",
+        "點「略過」，或把卡片向左滑。文章裡有同一菌名，仍要確認檢體部位是否能和本案比較。");
+    }
+    const site = paper.segments.findIndex((segment) => segment.key === "site");
+    if (!state.marks.includes(site)) return step("literature-circle",action("mark",String(site)),
+      "圈出可比較的檢體部位",
+      "點這段有底色的檢體文字，會留下圈選。這是你收入文章時，能指出來的對照線索。");
+    const limit = paper.segments.findIndex((segment) => segment.type === "limit");
+    if (limit >= 0 && !acknowledged.has("literature-limit")) return step("literature-limit",
+      action("mark",String(limit)),"這句限制也要一起讀",
+      "摘要記錄了檢出，致病角色仍待確認。這句會和文章一起收入案卷，讓後面能追溯它支持到哪裡。","知道了");
+    return step("literature-keep",action("classify","keep"),"把這篇和它的限制收入案卷",
+      "點「收入案卷」，或將卡片向右滑。圈選文字、摘要和限制都會留到最後的調查報告。");
+  }
+
+  function report() {
+    if (state.submitted) return step("report-return",".report-card > summary","查看每個候選的來源",
+      "展開任一候選，可以重讀原始紀錄、文獻和分流理由。","結束教學");
+    if (state.replied) return step("report-send",action("submit"),"回覆已寫進案卷",
+      "按「送出調查報告」，把候選的理由、原始來源和待確認的問題一起交回診療室。");
+    const card = screen.querySelector("#candidate-B");
+    if (!card?.open) return step("report-expand","#candidate-B > summary","先打開白色念珠菌的案卷",
+      "醫師問的是那張培養來自哪份檢體。點這張卡片展開，找到原始紀錄的編號與採檢時間。");
+    if (!acknowledged.has("report-read")) return step("report-read","#candidate-B .citations","沿來源找回檢體",
+      "這裡列出檢體編號、類型、採檢日與核發日，也保留了 Excel 儲存格和 PPT 頁碼。對好後再回覆醫師。","回覆醫師");
+    return step("report-reply",".report-reply .actions","用剛才找到的資料回覆",
+      "點選與原始培養紀錄一致的檢體。選錯還能展開案卷重新核對。");
+  }
+
+  function lesson() {
+    if (!state) return null;
+    if (state.view === "travel") return step("travel-go",action("walk-goal"),"先走到這關的目的地",
+      "你可以按這個按鈕，讓偵探走到櫃檯。也能用方向鍵、WASD 或點地圖移動；到站後會接上劇情和操作教學。");
+    const lessons = {gather,stamp,routing,literature,report};
+    return lessons[state.view]?.() || null;
+  }
+
+
+  const spotlight = document.createElement("div");
+  spotlight.className = "tutorial-spotlight";
+  spotlight.setAttribute("aria-hidden","true");
+  spotlight.hidden = true;
+  const panel = document.createElement("section");
+  panel.className = "tutorial-panel";
+  panel.hidden = true;
+  panel.setAttribute("aria-label","操作教學");
+  panel.innerHTML = '<p class="tutorial-label"></p><div class="tutorial-copy" aria-live="polite" aria-atomic="true">' +
+    '<h2></h2><p></p></div><div class="tutorial-actions"><button type="button" data-coach="close" class="quiet small">' +
+    '略過教學</button><button type="button" data-coach="next" class="primary"></button></div>';
+  document.body.append(spotlight,panel);
+
+  function hide() {
+    cancelAnimationFrame(frame);
+    spotlight.hidden = true;
+    panel.hidden = true;
+    target?.removeAttribute("data-tutorial-target");
+    target = null;
+    current = null;
+    needsScroll = false;
+    document.body.classList.remove("tutorial-active");
+    help.setAttribute("aria-pressed","false");
+  }
+
+  function position(scroll = false) {
+    if (!target?.isConnected || panel.hidden) return;
+    const view = window.visualViewport;
+    const width = view?.width || innerWidth;
+    const height = view?.height || innerHeight;
+    const top = view?.offsetTop || 0;
+    panel.style.maxHeight = Math.max(120,height-24) + "px";
+    const panelRect = panel.getBoundingClientRect();
+    document.body.style.setProperty("--tutorial-space",Math.ceil(panelRect.height+26)+"px");
+    const safeBottom = top+height-panelRect.height-34;
+    let rect = target.getBoundingClientRect();
+    if (scroll && (rect.top < top+14 || rect.bottom > safeBottom)) {
+      const desired = top+Math.max(16,(safeBottom-top-Math.min(rect.height,180))/2);
+      window.scrollBy({top:rect.top-desired,behavior:"instant"});
+      rect = target.getBoundingClientRect();
+    }
+    const left = Math.max(4,rect.left-5);
+    const upper = Math.max(top+4,rect.top-5);
+    const right = Math.min(width-4,rect.right+5);
+    const bottom = Math.min(top+height-4,rect.bottom+5);
+    spotlight.style.left = left + "px";
+    spotlight.style.top = upper + "px";
+    spotlight.style.width = Math.max(0,right-left) + "px";
+    spotlight.style.height = Math.max(0,bottom-upper) + "px";
+  }
+
+  function refresh() {
+    if (!active) { hide(); return; }
+    const next = lesson();
+    if (!next) { hide(); return; }
+    const element = screen.querySelector(next.target);
+    if (!element) { hide(); return; }
+    const changed = current?.id !== next.id;
+    needsScroll ||= changed;
+    target?.removeAttribute("data-tutorial-target");
+    target = element;
+    target.setAttribute("data-tutorial-target","");
+    current = next;
+    panel.querySelector(".tutorial-label").textContent = state.view === "travel" ? "肺城走圖 · 操作教學" :
+      "第 " + (state.chapter+1) + " 關 · 跟著做一次";
+    const nextButton = panel.querySelector('[data-coach="next"]');
+    nextButton.hidden = !next.next;
+    nextButton.textContent = next.next;
+    if (changed) {
+      panel.querySelector("h2").textContent = next.title;
+      panel.querySelector(".tutorial-copy > p").textContent = next.body;
+    }
+    panel.querySelector('[data-coach="close"]').textContent = next.next && /換我|繼續調查|結束教學/.test(next.next) ?
+      "關閉提示" : "略過教學";
+    panel.dataset.step = next.id;
+    panel.hidden = false;
+    spotlight.hidden = false;
+    document.body.classList.add("tutorial-active");
+    help.setAttribute("aria-pressed","true");
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const scroll = needsScroll;
+      needsScroll = false;
+      position(scroll);
+      if (changed && !panel.contains(document.activeElement) &&
+          target?.matches("button,summary,a,[tabindex]")) target.focus({preventScroll:true});
+    });
+  }
+
+  function update(snapshot) {
+    state = snapshot;
+    const supported = ["travel","gather","stamp","routing","literature","report"].includes(state.view);
+    const nextGroup = supported ? state.view : "";
+    help.hidden = !supported;
+    if (nextGroup !== group) {
+      active = supported && !visited.has(nextGroup);
+      if (supported) visited.add(nextGroup);
+      group = nextGroup;
+    }
+    refresh();
+  }
+
+  function close() {
+    active = false;
+    hide();
+    if (!help.hidden) help.focus({preventScroll:true});
+  }
+
+  function reset() {
+    visited.clear();
+    acknowledged.clear();
+    group = "";
+    state = null;
+    active = false;
+    hide();
+  }
+
+  function open() {
+    if (!state || help.hidden) return;
+    active = true;
+    for (const id of [...acknowledged]) {
+      if (id.startsWith(state.view + "-")) acknowledged.delete(id);
+    }
+    current = null;
+    refresh();
+  }
+
+  panel.addEventListener("click",(event) => {
+    const control = event.target.closest("[data-coach]");
+    if (!control) return;
+    if (control.dataset.coach === "close") { close(); return; }
+    if (!current) return;
+    if (/換我|繼續調查|結束教學/.test(current.next)) { close(); return; }
+    acknowledged.add(current.id);
+    refresh();
+  });
+  help.addEventListener("click",open);
+  document.addEventListener("toggle",(event) => {
+    if (event.target.matches?.(".report-card")) refresh();
+  },true);
+  document.addEventListener("keydown",(event) => {
+    if (event.key === "Escape" && active && !document.querySelector("dialog[open]")) close();
+  });
+  window.addEventListener("resize",() => position());
+  window.addEventListener("scroll",() => position(),{passive:true});
+  window.visualViewport?.addEventListener("resize",() => position());
+  const observer = new ResizeObserver(() => position());
+  observer.observe(panel);
+
+  window.BreathTutorial = {update,reset,open};
+})();
