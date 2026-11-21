@@ -14,7 +14,7 @@
   const fields = { id: "檢體編號", date: "採檢時間", type: "檢體類型", result: "檢驗結果" };
   const seals = { same: "同檢體證據", other: "其他檢體參考" };
   let state, drag, swipe, ignoreClickUntil = 0, resetToast, audio;
-  let muted = true, mapControl, mazeControl, debateControl;
+  let muted = false, mapControl, mazeControl, debateControl;
   const activity = ["gather","maze","literature","debate"];
   const sceneViews = ["intro","brief","ending"];
 

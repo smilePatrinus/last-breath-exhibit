@@ -2,7 +2,7 @@
   "use strict";
   const data=window.BreathDebateData;
   function reducedMotion(state) {
-    return state.motion === "reduced" || (!state.motion && matchMedia("(prefers-reduced-motion: reduce)").matches);
+    return state.motion === "reduced";
   }
   function render(state,button,html) {
     if(state.phase==="complete") return '<section class="panel debate-complete"><p class="eyebrow">議論結束 · 四段推論已核對</p>'+

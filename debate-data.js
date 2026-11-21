@@ -107,7 +107,7 @@
   }
   function create(records,mazeResults,kept) {
     return {...build(records,mazeResults,kept),index:0,phase:"ready",selected:"",elapsed:0,
-      focus:false,paused:false,drawer:false,feedback:null,results:[],mistakes:0};
+      motion:"full",focus:false,paused:false,drawer:false,feedback:null,results:[],mistakes:0};
   }
   function current(state) {return state.rounds[state.index];}
   function lineIndex(state) {return Math.floor(state.elapsed/4800)%current(state).lines.length;}
