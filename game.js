@@ -14,16 +14,16 @@
   const fields = { id: "檢體編號", date: "採檢時間", type: "檢體類型", result: "檢驗結果" };
   const seals = { same: "同檢體證據", other: "其他檢體參考" };
   let state, drag, swipe, ignoreClickUntil = 0, resetToast, audio;
-  let muted = true, mapControl;
-  const activity = ["gather","stamp","literature","report"];
+  let muted = true, mapControl, mazeControl;
+  const activity = ["gather","maze","literature","report"];
   const sceneViews = ["intro","brief","ending"];
 
   function reset() {
     tutorial.reset();
     state = {
       view: "title", chapter: -1, beat: 0, source: "excel", slide: "L02", draft: {}, token: "", slot: "",
-      records: [], docket: 0, filed: [], pins: {}, zoom: false, seal: "", applied: "",
-      paper: 0, marks: [], kept: [], submitted: false, proof: 0, position: null, replied: false
+      records: [], filed: [], maze: null,
+      paper: 0, marks: [], kept: [], submitted: false, position: null, replied: false
     };
     render(true);
   }
@@ -36,7 +36,6 @@
     '" data-value="' + value + '"' + (options.attrs || "") + '>' + text + '</button>';
   const pressed = (value) => ' aria-pressed="' + Boolean(value) + '"';
   const getRecord = (id) => content.records.find((record) => record.id === id);
-  const currentFile = () => state.records[state.docket];
   const currentPaper = () => content.literature[state.paper];
   const tabFocus = () => screen.querySelector("[data-focus]")?.focus({ preventScroll: true });
 
@@ -76,6 +75,10 @@
   }
 
   function go(view, chapter = state.chapter) {
+    if (view === "maze" && !state.maze) {
+      state.maze = window.BreathMazeRules.create();
+      state.filed = state.records.map((record) => ({...record,scope:content.chooseScope(record)}));
+    }
     state.view = view;
     state.chapter = chapter;
     state.beat = 0;
@@ -137,7 +140,7 @@
       result:"從 PPT 翻到同一個檢體編號，把檢驗結果帶入。"
     };
     const nextField = Object.keys(fields).find((key) => !state.draft[key]);
-    const guideText = state.records.length === 2 ? "兩張卡完成了。帶去窗口，確認哪張屬於本次 L02。" :
+    const guideText = state.records.length === 2 ? "兩張卡完成了。帶著原始紀錄進入判讀迷宮，沿不同菌種的規則找線索。" :
       (prompts[nextField] || "核對欄位都來自同一份檢體，再把紀錄收進案卷。");
     const slots = Object.entries(fields).map(([key, title]) => {
       const value = state.draft[key];
@@ -167,78 +170,20 @@
       '<div class="actions">' + button("清空欄位", "clear", "", {attrs:Object.keys(state.draft).length ? "" : " disabled"}) +
       button("收錄這份紀錄", "collect", "", {kind:"primary"}) + '</div>' +
       (gathered ? '<ul class="collected" aria-label="已收錄紀錄">' + gathered + '</ul>' : "") +
-      (state.records.length === 2 ? '<div class="actions">' + button("帶著資料前往窗口 →", "gather-next", "", {kind:"primary"}) + '</div>' : "") +
+      (state.records.length === 2 ? '<div class="actions">' + button("帶著案卷前往判讀迷宮", "gather-next", "", {kind:"primary"}) + '</div>' : "") +
       '</section></div>';
   }
 
-  function stamp() {
-    const record = currentFile();
-    const ready = state.pins.anchor && state.pins.file;
-    const pin = (text, key) => button(text, "pin", key, {
-      kind: "pin " + (state.pins[key] ? "selected" : ""), attrs:pressed(state.pins[key])
-    });
-    const stamps = Object.entries(seals).map(([key, label]) => button(label, "select-seal", key, {
-      kind:"stamp-tool " + key + (state.seal === key ? " selected" : ""),
-      attrs:' data-drag="seal" draggable="false"' + pressed(state.seal === key)
-    })).join("");
-    return heading("文件審查窗口", "先標記兩個檢體編號，再決定這份文件能支持哪個檢體。") +
-      '<div class="reference compact"><span>mNGS 參照件 · BAL · 11/18</span>' + pin("L02", "anchor") +
-      '<span>' + (state.pins.anchor ? "已標記 mNGS 檢體" : "點編號做標記") + '</span></div>' +
-      '<div class="work-grid counter-grid"><section class="docket panel"><div class="panel-top"><h2>入口文件</h2><span>' +
-      (state.docket + 1) + ' / ' + state.records.length + '</span></div>' +
-      '<article class="paper file-paper' + (state.zoom ? " zoom" : "") + '"><div class="panel-top"><h3 data-drag="file" data-value="document" draggable="false">檢驗單 ' + record.doc + '</h3>' +
-      button(state.zoom ? "還原" : "放大", "zoom", "", {kind:"quiet small",attrs:pressed(state.zoom)}) + '</div>' +
-      documents.labReport(record,html,{id:pin(record.id,"file")}) +
-      button(state.applied ? seals[state.applied] : "在這裡蓋章", "apply-seal", "", {
-        kind: "seal-target " + state.applied, attrs:' data-drop="seal" aria-label="蓋章處 ' +
-          (state.applied ? seals[state.applied] : "") + '"'
-      }) + '</article></section><section class="panel stamp-station"><div class="panel-top"><h2>審查章</h2></div>' +
-      '<p class="hint">' + (ready ? "檢體編號已標記。選擇並蓋下審查章。" : "兩個檢體編號都要標記，資料才能送出。") + '</p>' +
-      '<div class="stamp-tray">' + stamps + '</div><div class="reference mini">' +
-      '<span>同期窗 11/16–11/20</span><span>' + content.timing(record) + ' · 同期不一定是同檢體</span></div>' +
-      '<div class="actions">' + button("送入歸檔口 ↓", "file", "", {kind:"primary file-slot", attrs:' data-drop="file"'}) + '</div>' +
-      (state.filed.length ? '<p class="hint">已歸檔：' + state.filed.map((entry) => entry.id).join("、") + '</p>' : "") +
-      '</section></div>';
+  function maze() {
+    return heading("判讀迷宮","候選走不同規則，用案卷裡的證據找到能開的門。") +
+      window.BreathMaze.render(state.maze,state.records,button,html);
   }
 
-  const evidence = [
-    {kind:"culture", target:"A", key:"direct", description:"BAL 培養明確寫出銅綠假單胞菌，能接到同一菌種的 mNGS 候選。"},
-    {kind:"group", target:"G", key:"group", description:"報告寫的是肺炎克雷伯氏菌群。K. variicola 只是其中一員，證據要留在群組層級。"}
-  ];
-
-  function routing() {
-    const item = evidence[state.proof];
-    if (item) {
-      const record = state.filed.find((entry) => entry.scope === "same" &&
-        entry.tests.some((test) => test.kind === item.kind && test.target === item.target));
-      const test = record.tests.find((entry) => entry.kind === item.kind && entry.target === item.target);
-      return heading("檔案蓋好章了", "L02 的單子有兩條結果。判斷每一條支持到哪一層。") +
-        '<section class="panel evidence-station"><div class="panel-top"><h2>同檢體檢驗結果</h2><span>' +
-        (state.proof+1) + ' / ' + evidence.length + '</span></div><div class="paper"><p class="eyebrow">L02 · 原單 ' +
-        record.doc + ' · ' + html(test.label) + '</p><p class="evidence-line"><em>' + html(test.finding) +
-        '</em></p><p>' + html(test.detail) + '</p></div>' +
-        (item.kind === "group" ? '<details class="case-brief"><summary>查這個群組包含哪些菌種</summary><p>' +
-          html(content.group.members.join("、")) + '</p></details>' : "") +
-        '<p class="next-step">這個檢驗結果指到個別菌種，還是只到群組？</p>' +
-        '<div class="review-actions">' + button("直接指名個別候選", "label-proof", "direct") +
-        button("支持群組，保留疑問", "label-proof", "group") + '</div></section>';
-    }
-    return heading("窗口回條", "看看相同的 mNGS 檢出，為什麼會走三條不同的路。") +
-      '<div class="route-grid">' + content.candidateRoutes(state.filed, state.kept).map((entry) =>
-        '<article class="panel route-summary"><span class="candidate">' + entry.id + '</span><div>' +
-        '<p class="tag ' + entry.grade + '">' + entry.tier + '</p><h2>' + html(entry.name) + '</h2><p>' +
-        html(entry.reason) + '</p></div></article>').join("") + '</div>' +
-      '<div class="actions">' + button("帶著候選 C 查文獻 →", "review-next", "", {kind:"primary"}) + '</div>';
-  }
-
-  function labelProof(key) {
-    const item = evidence[state.proof];
-    if (!item) return;
-    if (item.key !== key) return toast(item.description,"error");
-    state.proof += 1;
-    play("stamp");
-    render(true);
-    toast(item.description,"success");
+  function reachMazeDoor(option) {
+    state.maze.walking = false;
+    const result = window.BreathMaze.choose(state.maze,option,state.records);
+    play(result.ok ? "done" : "tick");
+    render(false);
   }
 
   function sourceLink(source) {
@@ -271,6 +216,12 @@
   }
 
   function reportCard(item) {
+    const evidence = window.BreathMazeRules.cards(state.records,item.id);
+    const decisions = (item.decisions || []).map((entry) => {
+      const card = evidence.find((record) => record.id === entry.evidence);
+      return '<li><strong>' + html(entry.title + ' · ' + entry.choice) + '</strong><span>依據：' +
+        html(card ? card.title + ' · ' + card.subtitle : entry.evidence) + '</span><span>' + html(entry.reason) + '</span></li>';
+    }).join("");
     const records = item.inputs.map((record) => '<li><strong>' + record.id + ' · ' + record.date +
       ' · ' + record.sampleCode + ' · ' + seals[record.scope] + '</strong><span>採檢 ' +
       html(record.dateTime) + ' · 末次核發 ' + record.reportDate + '</span><span>' +
@@ -285,6 +236,7 @@
       '</small></span><span class="tag ' + item.grade + '">' + item.tier + '</span></summary>' +
       '<div class="report-body"><p>' + html(item.signal) + '</p><ol class="trail">' +
       item.path.map((text) => '<li>' + html(text) + '</li>').join("") + '</ol><p>' + html(item.reason) + '</p>' +
+      (decisions ? '<details class="maze-audit"><summary>查看迷宮裡的選擇與依據</summary><ul class="citations">' + decisions + '</ul></details>' : "") +
       (records ? '<h3>院端紀錄</h3><ul class="citations">' + records + '</ul>' : "") +
       (papers ? '<h3>保留的文獻</h3><ul class="citations">' + papers + '</ul>' :
         (item.id === "C" ? '<p class="hint">本輪沒有收入外部文獻，仍可保留院端群組線索。</p>' : "")) +
@@ -297,7 +249,7 @@
         '<section class="panel report-reply"><p class="eyebrow">醫師來電</p><h2>「白色念珠菌的培養，是哪一份檢體？」</h2>' +
         '<p class="hint">展開白色念珠菌的卡片，對照檢體類型與採檢時間。</p><div class="actions">' +
         button("L01 · 痰液","reply","L01") + button("L02 · BAL","reply","L02") + '</div></section>') +
-      '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept).map(reportCard).join("") + '</div>' +
+      '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept, state.maze?.results).map(reportCard).join("") + '</div>' +
       '<div class="report-footer"><p>報告會附上原單、保留的文獻與尚待確認的線索。</p>' +
       button(state.submitted ? "返回結案畫面" : "送出調查報告 →", state.submitted ? "back-done" : "submit", "", {kind:"primary",attrs:state.replied ? "" : " disabled"}) +
       '</div>';
@@ -306,14 +258,14 @@
   function done() {
     const project = [
       ["整理原始資料","以兩院資料為例，從試算表和簡報擷取欄位，按病人與採檢紀錄對齊。高醫則有自己的前端資料處理流程。"],
-      ["整合檢體證據","分開整理院端檢驗和 mNGS 檢出，保留來源、採檢時間、檢體及證據層級。"],
+      ["按菌種規則分流判讀","將 mNGS 訊號、院端支持與檢體脈絡接起來。不同菌種核對不同條件，未提供的資料保留未知。"],
       ["複核仍有疑問的候選","視需要查文獻作背景，並把檢出、可參考的證據與它的限制放在一起。"],
       ["交付可追溯的結果","回到原始資料核對，保留仍待查證的候選與理由。"]
     ];
     return '<section class="hero last">' + art("room") + '<div class="hero-content"><p class="eyebrow">調查報告已送達診療室</p>' +
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
-      '<div class="closing-copy"><p>你整理了 ' + state.records.length + ' 份採檢紀錄、審查了 ' + state.filed.length +
-      ' 份檢驗單，並保留 ' + state.kept.length + ' 篇可供對照的文獻。</p>' +
+      '<div class="closing-copy"><p>你整理了 ' + state.records.length + ' 份採檢紀錄，完成 ' + Object.keys(state.maze.results).length +
+      ' 條候選判讀路徑，並保留 ' + state.kept.length + ' 篇可供對照的文獻。</p>' +
       '<p>把檢驗單對回採檢紀錄，就能分清痰液的培養和 BAL 的 mNGS 各自支持到哪裡。</p></div>' +
       '<div class="actions">' + button("查看調查報告", "see-report", "", {kind:"primary"}) + button("再玩一次", "replay") +
       '</div></div></section><details class="panel project-note" open><summary>剛才玩的四步，對應到我們的專題</summary><ol>' +
@@ -323,9 +275,11 @@
       '</ul><p class="hint">D07 的檢體、日期與檢驗數值皆為模擬。公開文獻在各卡片另有標示。</p></details>';
   }
 
-  const views = {title, travel, gather, stamp, routing, literature, report, done};
+  const views = {title, travel, gather, maze, literature, report, done};
 
   function render(focus) {
+    mazeControl?.stop();
+    mazeControl = null;
     const before = document.activeElement?.closest?.("[data-action]");
     const key = before && {action:before.dataset.action, value:before.dataset.value};
     restart.hidden = state.view === "title";
@@ -359,6 +313,12 @@
     } else if (key) {
       Array.from(screen.querySelectorAll("[data-action]")).find((control) =>
         control.dataset.action === key.action && control.dataset.value === key.value)?.focus({preventScroll:true});
+    }
+    if (state.view === "maze") {
+      mazeControl = window.BreathMaze.mount(screen,state.maze,reachMazeDoor,
+        (position) => {state.maze.position = position;});
+      const dialogButton = screen.querySelector(".maze-message button");
+      if (dialogButton) dialogButton.focus({preventScroll:true});
     }
     tutorial.update(state);
   }
@@ -399,38 +359,6 @@
     play("done");
     render(false);
     toast("已收錄 " + record.id + "，並保留試算表與投影片的來源。", "success");
-  }
-
-  function applySeal(key) {
-    if (!key) return toast("先拿起一枚審查章。", "error");
-    if (!state.pins.anchor || !state.pins.file)
-      return toast("先在 mNGS 參照件和檢驗單各點一次檢體編號。", "error");
-    state.seal = key;
-    state.applied = key;
-    play("stamp");
-    render(false);
-  }
-
-  function file() {
-    const record = currentFile();
-    if (!state.applied) return toast("先在文件上蓋章，再送入歸檔口。", "error");
-    const scope = content.chooseScope(record);
-    if (state.applied !== scope) {
-      state.applied = "";
-      render(false);
-      return toast(scope === "same" ? "檢驗單和 mNGS 都是 L02 的 BAL，這份可以蓋「同檢體證據」。" :
-        "mNGS 是 L02 的 BAL，這份是 L01 的痰液。兩份日期接近，仍屬其他檢體。", "error");
-    }
-    state.filed.push({...record, scope, reference:"L02", pins:{...state.pins}, timing:content.timing(record)});
-    state.docket += 1;
-    state.pins = {};
-    state.zoom = false;
-    state.seal = "";
-    state.applied = "";
-    play("done");
-    if (state.docket === state.records.length) go("routing");
-    else render(true);
-    toast("已歸檔 " + record.id + " · " + seals[scope] + "。", "success");
   }
 
   function mark(index) {
@@ -525,16 +453,43 @@
       state.records.sort((a,b) => a.date.localeCompare(b.date));
       go("travel", 1);
     },
-    pin: (value) => {
-      state.pins[value] = !state.pins[value];
-      if (!state.pins[value]) state.applied = "";
+    "maze-door": (option) => {
+      if (state.maze.feedback || state.maze.drawer || state.maze.returning) return;
+      const choices = window.BreathMazeRules.current(state.maze).options;
+      const index = choices.findIndex((entry) => entry.id === option);
+      if (index >= 0) {
+        state.maze.walking = true;
+        tutorial.update(state);
+        screen.querySelector(".maze-viewport")?.focus({preventScroll:true});
+        screen.querySelector(".maze-viewport")?.scrollIntoView({block:"center"});
+        mazeControl?.walkDoor(index);
+      }
+    },
+    "maze-step": (direction) => mazeControl?.step(direction),
+    "maze-book": () => {
+      if (state.maze.feedback) return;
+      state.maze.walking = false;
+      state.maze.drawer = "book";
+      state.maze.readBook = true;
       render(false);
     },
-    zoom: () => { state.zoom = !state.zoom; render(false); },
-    "select-seal": (value) => { state.seal = value; render(false); },
-    "apply-seal": () => applySeal(state.seal),
-    file,
-    "label-proof": labelProof,
+    "maze-evidence": () => {
+      if (state.maze.feedback) return;
+      state.maze.walking = false;
+      state.maze.drawer = "evidence";
+      render(false);
+    },
+    "maze-close": () => {state.maze.drawer = ""; render(false);},
+    "maze-proof": (id) => {
+      if (!window.BreathMazeRules.cards(state.records,state.maze.candidate).some((entry) => entry.id === id)) return;
+      state.maze.selected = id;
+      state.maze.drawer = "";
+      render(false);
+    },
+    "maze-continue": () => {
+      window.BreathMaze.next(state.maze);
+      render(true);
+    },
     "review-next": () => go("travel", 2),
     mark: (value) => mark(Number(value)),
     classify,
@@ -559,6 +514,11 @@
 
   function keydown(event) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || dialog.open) return;
+    if (state.view === "maze" && state.maze.feedback && event.key === "Tab") {
+      event.preventDefault();
+      screen.querySelector(".maze-message button")?.focus();
+      return;
+    }
     if (sceneViews.includes(state.view) && (event.key === "ArrowRight" ||
         (event.code === "Space" && !event.target.closest("button,a")))) {
       event.preventDefault();
@@ -640,8 +600,7 @@
       ignoreClickUntil = performance.now() + 260;
       if (!item.target) return;
       if (item.kind === "token") placeToken(item.value,item.target.dataset.value);
-      else if (item.kind === "seal") applySeal(item.value);
-      else file();
+
     }
     if (swipe?.id === event.pointerId) {
       const gesture = swipe;

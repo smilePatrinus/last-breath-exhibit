@@ -74,7 +74,7 @@
 
   const chapter = [
     {num:"01",name:"失序的紀錄",short:"整理紀錄",scene:"archive",place:"肺城・資料檔案區"},
-    {num:"02",name:"文件審查窗口",short:"審查證據",scene:"counter",place:"肺城・文件審查窗口"},
+    {num:"02",name:"判讀迷宮",short:"規則迷宮",scene:"counter",place:"肺城・判讀迷宮"},
     {num:"03",name:"候選複核室",short:"查閱文獻",scene:"review",place:"肺城・候選複核室"},
     {num:"04",name:"交回調查報告",short:"核對報告",scene:"review",place:"肺城・結案桌"}
   ];
@@ -94,12 +94,12 @@
   const fitWindow = (record) => fits(record,3);
   const timing = (record) => !record?.date ? "採檢時間待核對" : (fits(record,2) ? "同期" : "同期窗外");
 
-  function candidateRoutes(files, kept) {
+  function candidateRoutes(files, kept, mazeResults = {}) {
     const matching = (scope, test) => files.find((file) => file.scope === scope && file.tests.some(test));
     const direct = matching("same",(test) => test.kind === "culture" && test.target === "A");
     const olderCulture = matching("other",(test) => test.kind === "culture" && test.target === "B");
     const groupEvidence = matching("same",(test) => test.kind === "group" && test.members.includes("C"));
-    return [
+    const items = [
       {...candidates.A,tier:direct?"優先保留":"待複核",grade:direct?"ready":"review",
        signal:"L02 的 mNGS 檢出銅綠假單胞菌。",
        reason:direct?"同一份 BAL 培養也分離出銅綠假單胞菌，可優先帶去討論。":"目前還缺能與本次 BAL 對上的培養支持。",
@@ -107,13 +107,17 @@
        inputs:direct?[direct]:[]},
       {...candidates.B,tier:"暫不列入",grade:"hold",
        signal:"白色念珠菌在 L02 的 mNGS 讀數最高。",
-       reason:"白色念珠菌的培養來自 11/16 的 L01 痰液，11/18 是出報告的日子。呼吸道分離出的念珠菌也可能是定植，本案的 mNGS 檢出仍保留在原單。",
+       reason:"白色念珠菌的培養來自 11/16 的 L01 痰液，11/18 是出報告的日子。呼吸道分離出的念珠菌也可能是定植；本案未提供同菌種血液、無菌部位或病理證據，這些項目保持未知。mNGS 檢出與呼吸道脈絡仍保留在案卷。",
        path:["mNGS 檢出、讀數最高","比對檢體編號與來源","培養來自另一份痰液","暫不列入"],inputs:olderCulture?[olderCulture]:[]},
       {...candidates.C,tier:"待複核",grade:"review",
        signal:"L02 的 mNGS 將 K. variicola 列為檢出候選。",
        reason:groupEvidence?"同檢體 FilmArray 只能支持肺炎克雷伯氏菌群，無法從這個結果分辨群內的個別菌種。":"仍缺本案直接指名 K. variicola 的院端紀錄。",
        path:["mNGS 檢出","核對院端回報層級","僅有群組線索","待複核"],inputs:groupEvidence?[groupEvidence]:[],papers:kept}
     ];
+    return items.map((item) => {
+      const journey = mazeResults[item.id];
+      return journey ? {...item,decisions:journey.trace,path:journey.trace.map((entry) => entry.title + "：" + entry.choice)} : item;
+    });
   }
 
   const data = {records,candidates,group,caseInfo,bibliography,literature,chapter,chooseScope,fitWindow,timing,candidateRoutes};

@@ -42,31 +42,23 @@
     return step("gather-take-" + missing,action("token",token),"取出「" + labels[missing] + "」",copy[missing]);
   }
 
-  function stamp() {
-    if (state.filed.length) return step("stamp-done",".file-paper h3","第一張已歸檔",
-      "接著用同樣方式審查下一張：標記兩個編號、選章、蓋章，再送出。每張都要重新對照 mNGS 參照件。","換我試試");
-    if (!state.pins.anchor) return step("stamp-anchor",action("pin","anchor"),"先標記 mNGS 的檢體",
-      "點參照件的 L02。這是本次調查要對照的檢體編號。");
-    if (!state.pins.file) return step("stamp-file",action("pin","file"),"再標記手上文件的檢體",
-      "點這份檢驗單的編號，把它和剛才的 L02 放在一起比較。");
-    const record = state.records[state.docket];
-    const rightSeal = window.BreathContent.chooseScope(record);
-    if (!state.seal || state.seal !== rightSeal) return step("stamp-choose",".stamp-tray","拿起一枚審查章",
-      "先比較兩個編號。相同就選「同檢體證據」，不同就選「其他檢體參考」。點章或把它拖到文件上。");
-    if (!state.applied) return step("stamp-apply",action("apply-seal"),"在文件上蓋章",
-      "你拿起了章，還要點這個蓋章位置留下章印。拖曳章到這裡也可以。");
-    return step("stamp-send",action("file"),"把審查完成的文件送出",
-      "按「送入歸檔口」完成這張文件。系統會核對章印，來源和你的檢體標記一起存入案卷。");
-  }
-
-  function routing() {
-    if (state.proof >= 2) return step("routing-done",".route-summary","文件開始影響候選的分流",
-      "這三張回條依照剛才核對的檢體與證據層級整理。看過理由後，就能帶仍有疑問的候選去查文獻。","繼續調查");
-    const id = "routing-read-" + state.proof;
-    if (!acknowledged.has(id)) return step(id,".evidence-line","先讀這一行原始結果",
-      "看看文字直接指名哪一個菌種，或只寫出一整個菌群。這裡要判斷的是檢驗回報到哪一層。","看選項");
-    return step("routing-answer-" + state.proof,".evidence-station .review-actions","選擇這行結果的回報層級",
-      "在這兩個選項中選一個。選錯時可以回頭讀原文，修正後再繼續。");
+  function maze() {
+    const session = state.maze;
+    if (!session || session.walking || session.drawer === "book") return null;
+    if (session.feedback) return step("maze-message",action("maze-continue"),"看清這扇門留下的提示",
+      "方向和依據都對上，才會把這一步寫進路徑。若還缺線索，可以回頭查手冊與原單。");
+    if (Object.keys(session.results).length === 3) return step("maze-finished",action("review-next"),
+      "三個候選走出了不同路徑","這些路徑會跟著案卷進到最後的報告。接著帶仍有疑問的候選去查文獻。","繼續調查");
+    if (session.candidate !== "A" || session.index > 0) return step("maze-done",action("maze-book"),
+      "後面的門換你來判斷","每次先查線索樹和手冊，再從案卷選依據。三個候選需要的資料不同，也會走到不同出口。","換我試試");
+    if (!session.readBook) return step("maze-book",action("maze-book"),"先讀這扇門的規則",
+      "門牌是分支，判讀手冊會提示這個候選需要核對什麼。先按這裡查線索。");
+    if (session.drawer === "evidence") return step("maze-card",action("maze-proof","identity:A"),
+      "把分類卡拿在手上","第一個岔路先核對候選身分。這張卡寫著銅綠假單胞菌的主要分類，點它作為這一步的依據。");
+    if (session.selected !== "identity:A") return step("maze-evidence",action("maze-evidence"),
+      "從案卷找能支持判斷的紀錄","每一扇門除了方向，也需要一張依據。打開案卷，先找候選分類卡。");
+    return step("maze-door",".maze-options","依分類卡選一扇門",
+      "看手上的主要分類，選符合它的門。偵探會沿走廊走過去，你也能用方向鍵或 WASD 自己走。");
   }
 
   function literature() {
@@ -111,7 +103,7 @@
     if (!state) return null;
     if (state.view === "travel") return step("travel-go",action("walk-goal"),"先走到這關的目的地",
       "你可以按這個按鈕，讓偵探走到櫃檯。也能用方向鍵、WASD 或點地圖移動；到站後會接上劇情和操作教學。");
-    const lessons = {gather,stamp,routing,literature,report};
+    const lessons = {gather,maze,literature,report};
     return lessons[state.view]?.() || null;
   }
 
@@ -207,7 +199,7 @@
 
   function update(snapshot) {
     state = snapshot;
-    const supported = ["travel","gather","stamp","routing","literature","report"].includes(state.view);
+    const supported = ["travel","gather","maze","literature","report"].includes(state.view);
     const nextGroup = supported ? state.view : "";
     help.hidden = !supported;
     if (nextGroup !== group) {
