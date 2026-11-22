@@ -87,4 +87,3 @@
   }
   window.BreathIntroVisuals = {render};
 })();
-
