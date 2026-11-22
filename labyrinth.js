@@ -24,7 +24,7 @@
       '<h2>找到了出口，也留下了證據的界線。</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。</p>'+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=12&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=13&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -82,11 +82,31 @@
     function rebuild() {
       terrain.imageSmoothingEnabled=false;
       for(let y=0;y<data.height;y++)for(let x=0;x<data.width;x++) {
-        tile(terrain,grid[y][x]?0:1,x*size,y*size);
-        if(!grid[y][x]){terrain.fillStyle="#101b2d5c";terrain.fillRect(x*size,y*size,size,size);}
+        const doorway=data.gates.some(gate=>gate.x===x&&gate.y===y);
+        tile(terrain,grid[y][x]||doorway?0:1,x*size,y*size);
+        if(!grid[y][x]&&!doorway){terrain.fillStyle="#101b2d5c";terrain.fillRect(x*size,y*size,size,size);}
         else if(x>14){terrain.fillStyle="#82ccb51a";terrain.fillRect(x*size,y*size,size,size);}
       }
-      for(const gate of data.gates)if(!state.found[gate.id])tile(terrain,2,(gate.x-.5)*size,(gate.y-1)*size,2*size,2*size);
+      for(const gate of data.gates)drawGate(gate,!state.found[gate.id]);
+    }
+    function drawGate(gate,closed) {
+      // Door art occupies the same single tile as the doorway, including its frame.
+      terrain.save();
+      terrain.beginPath();terrain.rect(gate.x*size,gate.y*size,size,size);terrain.clip();
+      terrain.translate((gate.x+.5)*size,(gate.y+.5)*size);
+      if(gate.axis==="y")terrain.rotate(Math.PI/2);
+      terrain.translate(-size/2,-size/2);
+      terrain.fillStyle="#352c35";terrain.fillRect(10,0,12,5);terrain.fillRect(10,27,12,5);
+      terrain.fillStyle="#b19a6a";terrain.fillRect(12,1,8,3);terrain.fillRect(12,28,8,3);
+      if(closed){
+        terrain.fillStyle="#452c20";terrain.fillRect(12,4,8,24);
+        terrain.fillStyle="#a77438";terrain.fillRect(14,5,4,22);
+        terrain.fillStyle="#d5b36a";terrain.fillRect(13,10,6,2);terrain.fillRect(13,21,6,2);
+        terrain.fillStyle="#f7dc8b";terrain.fillRect(15,15,2,3);
+      }else{
+        terrain.fillStyle="#a6d49d88";terrain.fillRect(15,5,2,22);
+      }
+      terrain.restore();
     }
     function draw(now=0) {
       if(stopped)return;
@@ -96,11 +116,14 @@
       for(const item of data.landmarks){
         const read=state.seen.includes(item.id),x=(item.x+.5)*size,y=(item.y+.5)*size;
         if(item.type==="record")tile(ctx,3,x-17,y-17,34,34);
-        else if(item.type==="blocked")tile(ctx,2,x-19,y-28,38,45);
+        else if(item.type==="blocked"){
+          ctx.save();ctx.beginPath();ctx.rect(item.x*size,item.y*size,size,size);ctx.clip();
+          tile(ctx,2,item.x*size,item.y*size,size,size);ctx.restore();
+        }
         else {ctx.fillStyle="#b2e3b7";ctx.fillRect(x-12,y-13,24,27);ctx.fillStyle="#255343";ctx.fillRect(x-7,y-10,14,24);}
         ctx.globalAlpha=read?.3:.65+Math.sin(now/240)*.15;
         ctx.strokeStyle=item.type==="exit"?"#c5ffd8":"#fff0a7";ctx.lineWidth=2;
-        ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+        ctx.beginPath();ctx.arc(x,y,item.type==="record"?18:13,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
       }
       const px=(visual.x+.5)*size,py=(visual.y+1)*size;
       ctx.fillStyle="#07152277";ctx.beginPath();ctx.ellipse(px,py-2,10,3,0,0,Math.PI*2);ctx.fill();

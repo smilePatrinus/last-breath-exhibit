@@ -10,8 +10,8 @@
     {id:"exit",x:28,y:3,label:"保留脈絡",type:"exit"}
   ];
   const gates=[
-    {id:"specimen",x:14,y:16,message:"這扇門需要先核對培養來源。附近有一座紀錄櫃。"},
-    {id:"missing",x:25,y:10,message:"還有一頁證據範圍要看。回頭找發光的紀錄。"}
+    {id:"specimen",x:14,y:16,axis:"x",message:"這扇門需要先核對培養來源。附近有一座紀錄櫃。"},
+    {id:"missing",x:25,y:10,axis:"y",message:"還有一頁證據範圍要看。回頭找發光的紀錄。"}
   ];
   function create() {
     return {position:{...spawn},seen:[],found:{},visited:[spawn.x+","+spawn.y],

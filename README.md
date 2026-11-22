@@ -30,7 +30,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=12&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=12&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=13&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=13&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -69,7 +69,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=12&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=13&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。
