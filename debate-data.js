@@ -2,6 +2,7 @@
   "use strict";
   const data=window.BreathContent;
   const documents=window.BreathDocuments;
+  const lineDuration=4200;
   const line=(id,before,target="",after="",tone="refute")=>({id,before,target,after,tone});
   function build(records,mazeResults,kept) {
     const cards=[];
@@ -110,7 +111,7 @@
       motion:"full",focus:false,paused:false,drawer:false,feedback:null,results:[],mistakes:0};
   }
   function current(state) {return state.rounds[state.index];}
-  function lineIndex(state) {return Math.floor(state.elapsed/4800)%current(state).lines.length;}
+  function lineIndex(state) {return Math.floor(state.elapsed/lineDuration)%current(state).lines.length;}
   function evaluate(state,lineId) {
     const round=current(state),statement=round.lines.find(item=>item.id===lineId);
     if(state.phase!=="running" || state.feedback || state.drawer) return null;
@@ -139,5 +140,5 @@
     state.index++;state.phase="ready";state.elapsed=0;state.selected="";state.focus=false;state.paused=false;state.feedback=null;
     if(state.index===state.rounds.length) state.phase="complete";
   }
-  window.BreathDebateData={build,create,current,lineIndex,evaluate,shoot,next};
+  window.BreathDebateData={lineDuration,build,create,current,lineIndex,evaluate,shoot,next};
 })();

@@ -106,7 +106,7 @@
       const delta=last?Math.min(now-last,80):0;last=now;
       if(!locked() && !state.paused && !document.hidden) state.elapsed+=delta*((held||state.focus)?0.25:1);
       updateLine();
-      const progress=(state.elapsed%4800)/4800;
+      const progress=(state.elapsed%data.lineDuration)/data.lineDuration;
       const reduced=reducedMotion(state);
       const width=arena.clientWidth,height=arena.clientHeight;
       const textWidth=utterance.offsetWidth,textHeight=utterance.offsetHeight;
@@ -132,7 +132,7 @@
       const hint=!playing?"待開始":state.feedback?"已命中":state.drawer?"查看證據":state.paused?"已暫停":
         reduced?"低動態":held||state.focus?"集中慢速":"流動中";
       root.querySelector(".debate-flow-label").textContent=hint+" · "+(shown+1)+" / "+round.lines.length+
-        (state.elapsed>=4800*round.lines.length?" · 重播":"");
+        (state.elapsed>=data.lineDuration*round.lines.length?" · 重播":"");
       board.classList.toggle("motion-reduced",reduced);
       board.classList.toggle("motion-full",!reduced);
       if(motionButton) motionButton.textContent=reduced?"動態：低":"動態：強";
@@ -141,7 +141,7 @@
       utterance.style.setProperty("--text-scale",reduced?1:scale);
       utterance.style.setProperty("--drift",visual+"px");
       utterance.style.opacity=String(reduced||!playing?1:opacity);
-      echo.style.opacity=String(!reduced&&playing&&state.elapsed>=4800?Math.max(0,0.2-progress*.65):0);
+      echo.style.opacity=String(!reduced&&playing&&state.elapsed>=data.lineDuration?Math.max(0,0.2-progress*.65):0);
       echo.style.transform="translate("+(-direction*(width*.15+progress*width)) +"px,0) rotate("+(-angle)+"deg)";
       echo.style.top=(height*(shown%2?.26:.66))+"px";
       arena.style.setProperty("--rush",!reduced&&playing&&!state.paused&&!locked()?0.12+(progress<.15||progress>.84?.2:0):0);
