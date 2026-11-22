@@ -49,7 +49,7 @@
       "這次探索了念珠菌路線。接著帶原始案卷裡 K. variicola 的疑問去文獻室。","繼續調查");
     if (session.visited.length>2 || acknowledged.has("labyrinth-walk")) return null;
     return step("labyrinth-walk",".labyrinth-controls .dpad","先試著走幾步",
-      "方向鍵、WASD 或點石板路都能走，手機可按住方向按鈕。靠近發光牌子會自動看見線索。","我知道了");
+      "身邊只有一圈微光。用方向鍵、WASD 或點亮處的石板路移動，手機可按住方向按鈕。走近亮點查看線索，小地圖會留下探索紀錄。","我知道了");
   }
 
   function maze() {

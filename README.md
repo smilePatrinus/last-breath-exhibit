@@ -30,7 +30,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=13&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=13&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=14&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=14&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -40,7 +40,8 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 - 抵達脈絡出口後才記錄完成。報告保留本輪實際走過的三個節點。
 - 本版只實際探索 B。A、C 依原始案卷整理，報告會標示本關未探索，結案計數也只算實際完成的路徑。
 - 第三關未收入文獻且沒有 C 的迷宮路徑時，第四關直接使用 FilmArray 原單作依據，不會製造一條未玩過的路徑。
-- 用方向鍵、WASD、點石板路，或按住觸控方向按鈕移動。小地圖顯示位置和地標；線索看完仍能原路返回。
+- 預設只看得到身邊約四格的圓形視野，圈外全黑；角色與光圈保持在畫面中央。門牌要走近才顯示，點黑暗區不會自動尋路。
+- 用方向鍵、WASD、點亮處的石板路，或按住觸控方向按鈕移動。小地圖只記下已照亮的附近與曾看見的地標；線索看完仍能原路返回。
 
 `labyrinth-data.js` 保存地形、證據門與線索資料；`labyrinth.js` 負責碰撞、尋路、鏡頭、同行候選及提示；`labyrinth.css` 負責響應式畫面。採用既有原創圖塊與角色，病例沿用模擬 D07。
 
@@ -69,7 +70,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=13&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=14&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。

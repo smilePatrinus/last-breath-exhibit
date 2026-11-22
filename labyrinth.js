@@ -9,14 +9,15 @@
   tiles.src="./assets/maze-tiles.png";sprite.src="./assets/detective-walk.png";
   function minimap(state) {
     const grid=data.floorPlan({found:{specimen:true,missing:true}});
+    const known=new Set(state.explored||[]);
     const cells=[];
     grid.forEach((row,y)=>row.forEach((floor,x)=>{
-      if(floor)cells.push('<rect x="'+x+'" y="'+y+'" width="1" height="1"/>');
+      if(floor)cells.push('<rect data-cell="'+x+','+y+'" class="'+(known.has(x+','+y)?'explored':'unexplored')+'" x="'+x+'" y="'+y+'" width="1" height="1"/>');
     }));
-    return '<svg viewBox="0 0 '+data.width+' '+data.height+'" role="img" aria-label="迷宮全圖，金點是你的位置">'+
+    return '<svg viewBox="0 0 '+data.width+' '+data.height+'" role="img" aria-label="已探索區域，金點是你的位置">'+
       '<g class="labyrinth-mini-floor">'+cells.join("")+'</g>'+
-      data.landmarks.map(item=>'<circle cx="'+(item.x+.5)+'" cy="'+(item.y+.5)+'" r=".6" class="'+
-        (state.seen.includes(item.id)?"read":item.type==="exit"?"exit":"landmark")+'"/>').join("")+
+      data.landmarks.map(item=>'<circle data-mini-landmark="'+item.id+'" cx="'+(item.x+.5)+'" cy="'+(item.y+.5)+'" r=".6" class="'+
+        (state.seen.includes(item.id)?"read":item.type==="exit"?"exit":"landmark")+(known.has(item.x+','+item.y)?'':' undiscovered')+'"/>').join("")+
       '<circle class="labyrinth-mini-player" cx="'+(state.position.x+.5)+'" cy="'+(state.position.y+.5)+'" r=".7"/></svg>';
   }
   function render(state,button,html) {
@@ -24,7 +25,7 @@
       '<h2>找到了出口，也留下了證據的界線。</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。</p>'+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=13&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=14&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -46,24 +47,29 @@
     }
     const landmarks=data.landmarks.map(item=>button(html(item.label),"labyrinth-landmark",item.id,{
       kind:"labyrinth-sign "+item.type+(state.seen.includes(item.id)?" seen":""),
-      attrs:' style="left:'+(item.x+.5)*size+'px;top:'+(item.y*size-15)+'px;" aria-label="走向'+html(item.label)+'"'+(state.dialog?' disabled':"")
+      attrs:' style="left:'+(item.x+.5)*size+'px;top:'+(item.y*size-15)+'px;" aria-label="走向'+html(item.label)+'"'+
+        (!data.inSight(state.position,item,2.25)?' hidden':"")+(state.dialog||!data.inSight(state.position,item,2.25)?' disabled':"")
     })).join("");
     return '<section class="labyrinth-mission"><div><p class="eyebrow">本次探路 · 白色念珠菌</p><h2>沿證據，找到能走的出口。</h2><p>'+
       html(data.task(state))+'</p></div><span class="labyrinth-companion">同行候選<br><b>Candida albicans</b></span></section>'+
       '<div class="labyrinth-layout"><section class="labyrinth-board"><div class="labyrinth-viewport" tabindex="0" aria-label="自由探索迷宮，方向鍵或 WASD 移動">'+
-      '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div></div>'+
-      '<div class="labyrinth-controls"><p>走近牌子，自動查看線索。<br><small>方向鍵／WASD、點石板路，或按住方向按鈕。</small></p>'+
+      '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div><div class="labyrinth-fog" aria-hidden="true"></div></div>'+
+      '<div class="labyrinth-controls"><p>在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small></p>'+
       '<div class="dpad">'+[["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([id,label,name])=>
         button(label,"labyrinth-move",id,{attrs:' aria-label="向'+name+'移動"'+(state.dialog?' disabled':"")})).join("")+
       '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+journal+
-      '<details class="panel labyrinth-minimap" open><summary>看一下迷宮全圖</summary>'+minimap(state)+
-      '<p>金點是你；亮點是紀錄與出口。</p></details></aside></div>';
+      '<details class="panel labyrinth-minimap" open><summary>看已探索的區域</summary>'+minimap(state)+
+      '<p>只記下照亮過的附近；金點是你。</p></details></aside></div>';
   }
 
   function mount(root,state,onVisit,onBlocked) {
     const viewport=root.querySelector(".labyrinth-viewport");
     if(!viewport)return null;
     const camera=root.querySelector(".labyrinth-camera"),canvas=root.querySelector("canvas");
+    const fog=root.querySelector(".labyrinth-fog");
+    const signs=new Map(Array.from(root.querySelectorAll('.labyrinth-sign'),node=>[node.dataset.value,node]));
+    const miniCells=new Map(Array.from(root.querySelectorAll('[data-cell]'),node=>[node.dataset.cell,node]));
+    const miniLandmarks=new Map(Array.from(root.querySelectorAll('[data-mini-landmark]'),node=>[node.dataset.miniLandmark,node]));
     canvas.width=data.width*size;canvas.height=data.height*size;
     const ctx=canvas.getContext("2d"),grid=data.floorPlan(state);
     const base=document.createElement("canvas");
@@ -72,7 +78,22 @@
     let at={...state.position},visual={...at},route=[],segment=null,held=null,face="up",walk=1;
     let raf=0,stopped=false,pending="",lastBlock=0;
     const visited=new Set(state.visited);
+    state.explored ||= [];
+    const explored=new Set(state.explored);
     const locked=()=>Boolean(state.dialog || state.complete || document.querySelector("dialog[open]"));
+    function reveal() {
+      const radius=Math.ceil(data.visionRadius);
+      for(let y=Math.max(0,at.y-radius);y<Math.min(data.height,at.y+radius+1);y++)
+        for(let x=Math.max(0,at.x-radius);x<Math.min(data.width,at.x+radius+1);x++){
+          const key=x+","+y;
+          if(data.inSight(at,{x,y})&&!explored.has(key)){
+            explored.add(key);state.explored.push(key);
+            const cell=miniCells.get(key);
+            if(cell){cell.classList.remove('unexplored');cell.classList.add('explored');}
+          }
+        }
+      for(const item of data.landmarks)miniLandmarks.get(item.id)?.classList.toggle('undiscovered',!explored.has(item.x+','+item.y));
+    }
     function tile(context,index,x,y,w=size,h=size) {
       if(tiles.complete&&tiles.naturalWidth) {
         const sw=tiles.naturalWidth/2,sh=tiles.naturalHeight/2;
@@ -136,9 +157,19 @@
       ctx.beginPath();ctx.ellipse(px+24,py-10+bob,7,10,0,0,Math.PI*2);ctx.fill();ctx.stroke();
       ctx.beginPath();ctx.ellipse(px+30,py-18+bob,4,5,.4,0,Math.PI*2);ctx.fill();ctx.stroke();
       ctx.fillStyle="#324f42";ctx.fillRect(px+23,py-13+bob,2,2);
-      const sx=Math.max(0,Math.min(canvas.width-viewport.clientWidth,px-viewport.clientWidth*.48));
-      const sy=Math.max(0,Math.min(canvas.height-viewport.clientHeight,py-viewport.clientHeight*.56));
+      const sx=px-viewport.clientWidth*.5;
+      const sy=(visual.y+.5)*size-viewport.clientHeight*.5;
       camera.style.transform="translate("+(-sx)+"px,"+(-sy)+"px)";
+      fog.style.setProperty('--light-x',(px-sx)+'px');
+      fog.style.setProperty('--light-y',((visual.y+.5)*size-sy)+'px');
+      fog.style.setProperty('--vision-radius',(data.visionRadius*size)+'px');
+      for(const item of data.landmarks){
+        const sign=signs.get(item.id),visible=data.inSight(visual,item,2.25);
+        sign.hidden=!visible;sign.disabled=!visible||Boolean(state.dialog);
+        const below=item.y<visual.y;
+        sign.classList.toggle('below',below);
+        sign.style.top=((below?item.y+1:item.y)*size+(below?8:-15))+'px';
+      }
       const mini=root.querySelector(".labyrinth-mini-player");
       if(mini){mini.setAttribute("cx",visual.x+.5);mini.setAttribute("cy",visual.y+.5);}
     }
@@ -148,6 +179,7 @@
     }
     function arrived() {
       state.position={...at};
+      reveal();
       const key=at.x+","+at.y;
       if(!visited.has(key)){visited.add(key);state.visited.push(key);}
       const item=data.landmarks.find(item=>item.x===at.x&&item.y===at.y);
@@ -176,14 +208,19 @@
     }
     function walkTo(goal,eventId="") {
       if(locked())return;
+      if(!data.inSight(visual,goal)){onBlocked("那裡還在黑暗中。先沿著看得見的石板路探索。");return;}
       if(!grid[goal.y]?.[goal.x]){blocked(goal);return;}
-      held=null;pending=eventId;route=window.BreathMaze.pathTo(grid,segment?.to||at,goal);
+      const visibleGrid=grid.map((row,y)=>row.map((floor,x)=>floor&&data.inSight(visual,{x,y})));
+      held=null;pending=eventId;route=window.BreathMaze.pathTo(visibleGrid,segment?.to||at,goal);
       if(!route.length&&at.x===goal.x&&at.y===goal.y)arrived();
-      else if(!route.length)onBlocked("這邊還走不通。看看沿途的紀錄與門牌。");
+      else if(!route.length)onBlocked("亮處還看不到相通的路。先沿眼前的走廊探索。");
     }
     function toLandmark(id) {
       const landmark=data.landmarks.find(item=>item.id===id);
-      if(landmark)walkTo(landmark,id);
+      if(landmark){
+        if(!data.inSight(visual,landmark,2.25)){onBlocked("那個地標還在黑暗裡，先走近看看。");return;}
+        walkTo(landmark,id);
+      }
     }
     const keydown=event=>{
       if(event.altKey||event.ctrlKey||event.metaKey||event.target.closest("input,textarea")||locked())return;
@@ -213,7 +250,7 @@
     viewport.addEventListener("click",mapClick);
     const loaded=()=>{rebuild();draw();};
     tiles.addEventListener("load",loaded);sprite.addEventListener("load",loaded);
-    rebuild();draw();raf=requestAnimationFrame(tick);
+    reveal();rebuild();draw();raf=requestAnimationFrame(tick);
     return {toLandmark,walkTo,stop(){
       stopped=true;cancelAnimationFrame(raf);
       document.removeEventListener("keydown",keydown);document.removeEventListener("keyup",keyup);

@@ -1,6 +1,9 @@
 (function () {
   "use strict";
-  const width=31,height=23,tileSize=32,spawn={x:3,y:20};
+  const width=31,height=23,tileSize=32,visionRadius=4.25,spawn={x:3,y:20};
+  function inSight(position,cell,radius=visionRadius) {
+    return Math.hypot(cell.x-position.x,cell.y-position.y)<=radius;
+  }
   const landmarks=[
     {id:"shortcut",x:8,y:5,label:"高讀數捷徑",type:"blocked"},
     {id:"specimen",x:11,y:18,label:"培養紀錄",type:"record"},
@@ -14,7 +17,7 @@
     {id:"missing",x:25,y:10,axis:"y",message:"還有一頁證據範圍要看。回頭找發光的紀錄。"}
   ];
   function create() {
-    return {position:{...spawn},seen:[],found:{},visited:[spawn.x+","+spawn.y],
+    return {position:{...spawn},seen:[],found:{},visited:[spawn.x+","+spawn.y],explored:[],
       trace:[],dialog:null,complete:false,result:null};
   }
   function floorPlan(state) {
@@ -107,5 +110,5 @@
     if(!state.found.missing)return "檢體來源對上了。穿過新開的門，查看還缺哪些證據。";
     return "缺少的項目保持未知。沿著走廊找到「保留脈絡」出口。";
   }
-  window.BreathLabyrinthData={width,height,tileSize,spawn,landmarks,gates,create,floorPlan,visit,task};
+  window.BreathLabyrinthData={width,height,tileSize,visionRadius,inSight,spawn,landmarks,gates,create,floorPlan,visit,task};
 })();
