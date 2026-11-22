@@ -422,6 +422,9 @@
       if (messageButton) messageButton.focus({preventScroll:true});
     }
     tutorial.update(state);
+    window.BreathMusic?.scene(state.view,state.chapter,
+      sceneViews.includes(state.view) || Boolean(state.labyrinth?.dialog && state.view === "labyrinth") ||
+      Boolean(state.maze?.feedback && state.view === "maze") || Boolean(state.debate?.feedback && state.view === "debate"));
   }
 
   function placeToken(token, slot) {
@@ -693,6 +696,12 @@
     sound.setAttribute("aria-pressed", String(!muted));
     sound.textContent = "音效：" + (muted ? "關" : "開");
     if (!muted) play("tick");
+  });
+  const musicButton = document.getElementById("music");
+  musicButton?.addEventListener("click", () => {
+    const enabled = window.BreathMusic.toggle();
+    musicButton.textContent = "音樂：" + (enabled ? "開" : "關");
+    musicButton.setAttribute("aria-pressed",String(enabled));
   });
 
 

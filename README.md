@@ -30,7 +30,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=11&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=11&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=12&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=12&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -69,7 +69,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=11&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=12&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。
@@ -100,6 +100,22 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 地圖、走路圖與像素立繪皆透過內建 ImageGen 產製。地圖提示採用「連續石板路，檔案櫃、蓋章窗口、文獻架、結案桌依序開向走道，無角色與文字的俯視像素場景」。走路圖以原偵探造型為參考，使用「貝雷帽與黃圍巾，四個朝向，各三格步態，透明背景」。
 
 演出參考《活俠傳》官方畫面中的雙人立繪與對話框呈現。走圖參考 RPG Maker 的移動路線與到站事件。教學以對話先提出問題，再讓玩家在原始文件中用一次操作驗證。 [《活俠傳》官方預告](https://www.youtube.com/watch?v=O3To9yxYRvU) · [RPG Maker MZ 移動路線手冊](https://rpgmakerofficial.com/product/MZ_help-en/01_10_06_01.html) · [George Fan 的教學設計演講](https://www.gdcvault.com/play/1015541/Playtesting-for-Game)
+
+
+## 原創背景音樂
+
+音樂預設開啟，首次點擊或鍵盤操作後開始播放。右上角「音樂」與「音效」是獨立開關。關卡換曲時會淡出銜接，對話和線索視窗出現時降低配樂音量，切到背景分頁時暫停。
+
+| 場景 | 曲名 | 氣氛 |
+| --- | --- | --- |
+| 開場與診療室 | 肺城夜航 | 緩慢、帶一點疑問 |
+| 第一關 | 散落的紀錄 | 輕巧、逐步整理 |
+| 第二關 | 呼吸道迴廊 | 好奇、探索與回頭找路 |
+| 第三關 | 翻頁之間 | 安靜、適合閱讀 |
+| 第四關 | 證據交鋒 | 較快的節奏與脈衝 |
+| 報告與結局 | 裂縫仍在 | 放慢、保留未解的部分 |
+
+`music.js` 保存六段為本遊戲編寫的旋律、和聲與節奏，以 Web Audio 即時合成循環配樂。沒有下載或引用第三方錄音，完整遊戲與配樂可離線使用。
 
 ## GitHub Pages
 

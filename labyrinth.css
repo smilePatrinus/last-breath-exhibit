@@ -55,6 +55,7 @@
 .labyrinth-demo-link{margin:8px 0 4px}
 .hero-demo{display:flex;flex-wrap:wrap;gap:8px}
 .hero-demo .hero-meta{flex-basis:100%;margin:0}
+.header-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}
 @media(max-width:800px){
  .labyrinth-layout{grid-template-columns:minmax(0,1fr)}
  .labyrinth-aside{grid-template-columns:minmax(0,1.6fr) minmax(150px,1fr);align-items:start}
