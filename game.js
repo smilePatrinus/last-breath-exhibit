@@ -189,6 +189,7 @@
 
   function visitLabyrinth(id) {
     if (window.BreathLabyrinthData.visit(state.labyrinth,id,state.records)) {
+      state.labyrinth.hintGoal = "";
       if (state.labyrinth.complete) state.maze.results.B = state.labyrinth.result;
       play(state.labyrinth.complete ? "done" : "tick");
       render(false);
@@ -424,7 +425,7 @@
       const messageButton = screen.querySelector(".debate-feedback button");
       if (messageButton) messageButton.focus({preventScroll:true});
     }
-    tutorial.update(state);
+    tutorial.update(state,{assist:hintAssist,clear:clearHint});
     window.BreathMusic?.scene(state.view,state.chapter,
       sceneViews.includes(state.view) || Boolean(state.labyrinth?.dialog && state.view === "labyrinth") ||
       Boolean(state.maze?.feedback && state.view === "maze") || Boolean(state.debate?.feedback && state.view === "debate"));
@@ -508,6 +509,27 @@
     state.beat += 1;
     if (current[state.beat].cue) play(current[state.beat].cue);
     render(true);
+  }
+
+  function clearHint() {
+    if (state?.labyrinth) state.labyrinth.hintGoal = "";
+  }
+  function hintAssist(kind, goal) {
+    if (kind === "route" && state.view === "labyrinth" && !state.labyrinth.dialog && !state.labyrinth.complete) {
+      const expected = !state.labyrinth.found.specimen ? "specimen" : !state.labyrinth.found.missing ? "missing" : "exit";
+      if (goal !== expected) return;
+      state.labyrinth.hintGoal = goal;
+      render(false);
+      screen.querySelector(".labyrinth-viewport")?.focus({preventScroll:true});
+    }
+    if (kind === "debate" && state.view === "debate") {
+      const session = state.debate;
+      if (session.phase !== "running" || session.feedback || session.drawer || session.shotPending) return;
+      const round = window.BreathDebateData.current(session);
+      session.elapsed = (round.lines.findIndex(line => line.id === round.correct.line) + .45) * window.BreathDebateData.lineDuration;
+      session.paused = true;
+      render(false);
+    }
   }
 
   function focusSource() {

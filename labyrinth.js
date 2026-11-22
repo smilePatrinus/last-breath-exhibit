@@ -15,7 +15,7 @@
       if(floor)cells.push('<rect data-cell="'+x+','+y+'" class="'+(known.has(x+','+y)?'explored':'unexplored')+'" x="'+x+'" y="'+y+'" width="1" height="1"/>');
     }));
     return '<svg viewBox="0 0 '+data.width+' '+data.height+'" role="img" aria-label="已探索區域，金點是你的位置">'+
-      '<g class="labyrinth-mini-floor">'+cells.join("")+'</g>'+
+      '<g class="labyrinth-mini-floor">'+cells.join("")+'</g><path class="labyrinth-hint-route" d="" fill="none" aria-hidden="true"/>'+
       data.landmarks.map(item=>'<circle data-mini-landmark="'+item.id+'" cx="'+(item.x+.5)+'" cy="'+(item.y+.5)+'" r=".6" class="'+
         (state.seen.includes(item.id)?"read":item.type==="exit"?"exit":"landmark")+(known.has(item.x+','+item.y)?'':' undiscovered')+'"/>').join("")+
       '<circle class="labyrinth-mini-player" cx="'+(state.position.x+.5)+'" cy="'+(state.position.y+.5)+'" r=".7"/></svg>';
@@ -25,7 +25,7 @@
       '<h2>找到了出口，也留下了證據的界線。</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。</p>'+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=16&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=17&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -59,7 +59,7 @@
         button(label,"labyrinth-move",id,{attrs:' aria-label="向'+name+'移動"'+(state.dialog?' disabled':"")})).join("")+
       '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+journal+
       '<details class="panel labyrinth-minimap" open><summary>看已探索的區域</summary>'+minimap(state)+
-      '<p>只記下照亮過的附近；金點是你。</p></details></aside></div>';
+      '<p>只記下照亮過的附近；金點是你。</p><p class="labyrinth-hint-status" hidden>金色虛線是提示路徑，沿著它走到下一份線索。</p></details></aside></div>';
   }
 
   function mount(root,state,onVisit,onBlocked) {
@@ -129,6 +129,27 @@
       }
       terrain.restore();
     }
+    let hintKey="", hintPath=[];
+    function drawHint() {
+      const key=[state.hintGoal || "",at.x,at.y,Boolean(state.found.specimen),Boolean(state.found.missing)].join(":");
+      if(key!==hintKey) {
+        hintKey=key;
+        const goal=data.landmarks.find(item=>item.id===state.hintGoal);
+        hintPath=goal&&!state.dialog?[{...at},...window.BreathMaze.pathTo(grid,at,goal)]:[];
+      }
+      const mini=root.querySelector(".labyrinth-hint-route");
+      const path=hintPath.map((cell,index)=>(index?"L":"M")+(cell.x+.5)+","+(cell.y+.5)).join(" ");
+      if(mini)mini.setAttribute("d",path);
+      const note=root.querySelector(".labyrinth-hint-status");
+      if(note)note.hidden=hintPath.length<2;
+      if(hintPath.length<2)return;
+      ctx.save();ctx.strokeStyle="#ffe385";ctx.lineWidth=4;ctx.setLineDash([7,5]);
+      ctx.lineDashOffset=-performance.now()/100;
+      ctx.beginPath();hintPath.forEach((cell,index)=>ctx[index?"lineTo":"moveTo"]((cell.x+.5)*size,(cell.y+.5)*size));ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle="#ffe385";
+      hintPath.slice(1,5).forEach(cell=>{ctx.fillRect((cell.x+.5)*size-3,(cell.y+.5)*size-3,6,6);});
+      ctx.restore();
+    }
     function draw(now=0) {
       if(stopped)return;
       ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(base,0,0);
@@ -146,6 +167,7 @@
         ctx.strokeStyle=item.type==="exit"?"#c5ffd8":"#fff0a7";ctx.lineWidth=2;
         ctx.beginPath();ctx.arc(x,y,item.type==="record"?18:13,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
       }
+      drawHint();
       const px=(visual.x+.5)*size,py=(visual.y+1)*size;
       ctx.fillStyle="#07152277";ctx.beginPath();ctx.ellipse(px,py-2,10,3,0,0,Math.PI*2);ctx.fill();
       if(sprite.complete&&sprite.naturalWidth) {

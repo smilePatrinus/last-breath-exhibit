@@ -9,6 +9,12 @@
     (value === undefined ? "" : '[data-value="' + value + '"]');
   const step = (id, target, title, body, next = "") => ({id,target,title,body,next});
   let state, group = "", active = false, current, target, frame = 0, needsScroll = false;
+  let hintMode = false, assists = {}, extraTargets = [];
+  const quickHint = document.createElement("button");
+  quickHint.type = "button"; quickHint.id = "quick-hint"; quickHint.className = "quick-hint";
+  quickHint.textContent = "卡住了？給我提示";
+  quickHint.setAttribute("aria-expanded","false"); quickHint.setAttribute("aria-controls","instruction-panel");
+  quickHint.hidden = true;
 
   function gather() {
     if (state.records.length) return step("gather-done",".collected","第一份紀錄已完成",
@@ -131,23 +137,29 @@
   spotlight.hidden = true;
   const panel = document.createElement("section");
   panel.className = "tutorial-panel";
+  panel.id = "instruction-panel";
   panel.hidden = true;
   panel.setAttribute("aria-label","操作教學");
   panel.innerHTML = '<p class="tutorial-label"></p><div class="tutorial-copy" aria-live="polite" aria-atomic="true">' +
     '<h2></h2><p></p></div><div class="tutorial-actions"><button type="button" data-coach="close" class="quiet small">' +
     '略過教學</button><button type="button" data-coach="next" class="primary"></button></div>';
-  document.body.append(spotlight,panel);
+  document.body.append(spotlight,panel,quickHint);
 
   function hide() {
     cancelAnimationFrame(frame);
     spotlight.hidden = true;
     panel.hidden = true;
     target?.removeAttribute("data-tutorial-target");
+    extraTargets.forEach(element => element.removeAttribute("data-hint-extra"));
+    extraTargets = [];
     target = null;
     current = null;
     needsScroll = false;
     document.body.classList.remove("tutorial-active");
+    document.body.removeAttribute("data-hint-route");
     help.setAttribute("aria-pressed","false");
+    quickHint.setAttribute("aria-expanded","false");
+    quickHint.textContent = "卡住了？給我提示";
   }
 
   function position(scroll = false) {
@@ -156,10 +168,11 @@
     const width = view?.width || innerWidth;
     const height = view?.height || innerHeight;
     const top = view?.offsetTop || 0;
-    panel.style.maxHeight = Math.max(120,height-24) + "px";
+    panel.style.maxHeight = Math.max(120,height-100) + "px";
     const panelRect = panel.getBoundingClientRect();
-    document.body.style.setProperty("--tutorial-space",Math.ceil(panelRect.height+26)+"px");
-    const safeBottom = top+height-panelRect.height-34;
+    document.body.style.setProperty("--tutorial-space",Math.ceil(panelRect.height+88)+"px");
+    const safeBottom = top+height-panelRect.height-94;
+    if (scroll) target.scrollIntoView({block:"nearest",inline:"nearest",behavior:"instant"});
     let rect = target.getBoundingClientRect();
     if (scroll && (rect.top < top+14 || rect.bottom > safeBottom)) {
       const desired = top+Math.max(16,(safeBottom-top-Math.min(rect.height,180))/2);
@@ -178,32 +191,42 @@
 
   function refresh() {
     if (!active) { hide(); return; }
-    const next = lesson();
+    const next = hintMode ? window.BreathHints.next(state) : lesson();
     if (!next) { hide(); return; }
     const element = screen.querySelector(next.target);
     if (!element) { hide(); return; }
-    const changed = current?.id !== next.id;
+    const changed = current?.id !== next.id || panel.dataset.mode !== (hintMode ? "hint" : "tutorial");
     needsScroll ||= changed;
     target?.removeAttribute("data-tutorial-target");
     target = element;
     target.setAttribute("data-tutorial-target","");
     current = next;
+    extraTargets.forEach(entry => entry.removeAttribute("data-hint-extra"));
+    extraTargets = (next.also || []).map(selector => screen.querySelector(selector)).filter(Boolean);
+    extraTargets.forEach(entry => entry.setAttribute("data-hint-extra",""));
+    panel.dataset.mode = hintMode ? "hint" : "tutorial";
+    spotlight.dataset.mode = panel.dataset.mode;
+    document.body.dataset.hintRoute = String(hintMode && next.assist === "route");
     panel.querySelector(".tutorial-label").textContent = state.view === "travel" ? "肺城走圖 · 操作教學" :
       "第 " + (state.chapter+1) + " 關 · 跟著做一次";
+    if (hintMode) panel.querySelector(".tutorial-label").textContent = "直接提示 · 跟著亮框做";
     const nextButton = panel.querySelector('[data-coach="next"]');
     nextButton.hidden = !next.next;
     nextButton.textContent = next.next;
-    if (changed) {
+    if (changed || hintMode) {
       panel.querySelector("h2").textContent = next.title;
       panel.querySelector(".tutorial-copy > p").textContent = next.body;
     }
     panel.querySelector('[data-coach="close"]').textContent = next.next && /換我|繼續調查|結束教學/.test(next.next) ?
       "關閉提示" : "略過教學";
+    if (hintMode) panel.querySelector('[data-coach="close"]').textContent = "收起提示";
     panel.dataset.step = next.id;
     panel.hidden = false;
     spotlight.hidden = false;
     document.body.classList.add("tutorial-active");
-    help.setAttribute("aria-pressed","true");
+    help.setAttribute("aria-pressed",String(!hintMode));
+    quickHint.setAttribute("aria-expanded",String(hintMode));
+    quickHint.textContent = hintMode ? "收起直接提示" : "卡住了？給我提示";
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
       const scroll = needsScroll;
@@ -214,12 +237,16 @@
     });
   }
 
-  function update(snapshot) {
+  function update(snapshot, controls) {
     state = snapshot;
+    if (controls) assists = controls;
     const supported = ["travel","gather","maze","labyrinth","literature","debate","report"].includes(state.view);
     const nextGroup = supported ? state.view : "";
     help.hidden = !supported;
+    quickHint.hidden = !supported;
     if (nextGroup !== group) {
+      if (hintMode) assists.clear?.();
+      hintMode = false;
       active = supported && !visited.has(nextGroup);
       if (supported) visited.add(nextGroup);
       group = nextGroup;
@@ -228,12 +255,17 @@
   }
 
   function close() {
+    const wasHint = hintMode;
+    if (wasHint) assists.clear?.();
+    hintMode = false;
     active = false;
     hide();
-    if (!help.hidden) help.focus({preventScroll:true});
+    if (!help.hidden) (wasHint ? quickHint : help).focus({preventScroll:true});
   }
 
   function reset() {
+    if (hintMode) assists.clear?.();
+    hintMode = false;
     visited.clear();
     acknowledged.clear();
     group = "";
@@ -244,6 +276,8 @@
 
   function open() {
     if (!state || help.hidden) return;
+    if (hintMode) assists.clear?.();
+    hintMode = false;
     active = true;
     for (const id of [...acknowledged]) {
       if (id.startsWith(state.view + "-")) acknowledged.delete(id);
@@ -257,11 +291,21 @@
     if (!control) return;
     if (control.dataset.coach === "close") { close(); return; }
     if (!current) return;
+    if (hintMode) {
+      if (current.assist) assists.assist?.(current.assist,current.goal);
+      else position(true);
+      return;
+    }
     if (/換我|繼續調查|結束教學/.test(current.next)) { close(); return; }
     acknowledged.add(current.id);
     refresh();
   });
   help.addEventListener("click",open);
+  quickHint.addEventListener("click",() => {
+    if (hintMode && active) { close(); return; }
+    hintMode = true; active = true; current = null;
+    refresh();
+  });
   document.addEventListener("toggle",(event) => {
     if (event.target.matches?.(".report-card")) refresh();
   },true);
