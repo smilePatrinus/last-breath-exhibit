@@ -10,7 +10,7 @@
 
   function lines(state) {
     if (state.view === "ending") return script.ending(state.kept);
-    if (state.view === "brief") return script.chapters[state.chapter].script;
+    if (state.view === "brief") return script.chapter(state).script;
     return script.intro;
   }
 
@@ -29,7 +29,7 @@
     const mode = modeOf(state);
     const scene = sceneOf(mode,state,line);
     const last = state.beat === current.length-1;
-    const chapter = script.chapters[state.chapter];
+    const chapter = script.chapter(state);
     const label = line.label || (mode === "call" && last ? chapter.label : "繼續");
     const actor = line.role === "thought" ? "detective" : line.role;
     const location = mode === "call" ? window.BreathContent.chapter[state.chapter].place :
@@ -75,10 +75,10 @@
 
   function map(state, button) {
     const content = window.BreathContent.chapter;
-    const chapter = script.chapters[state.chapter];
+    const chapter = script.chapter(state);
     const stations = window.BreathWorld.stations.map((station,index) => {
       const marker = '<span class="gate-pin" aria-hidden="true">' + (index < state.chapter ? "✓" : content[index].num) +
-        '</span><span class="gate-name">' + script.chapters[index].target + '</span>';
+        '</span><span class="gate-name">' + script.chapter(state,index).target + '</span>';
       return '<div class="map-station ' + (index === state.chapter ? "goal" : "") + '" style="--gate-x:' +
         station.x*100 + '%;--gate-y:' + station.y*100 + '%">' +
         (index === state.chapter ? button(marker,"walk-goal","",{kind:"map-gate",attrs:' aria-label="走向'+chapter.target+'"'}) :

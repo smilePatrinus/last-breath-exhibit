@@ -91,16 +91,16 @@
       correction:"文獻作為呼吸道背景，保留其檢體與共檢出限制；本案物種與致病角色仍待確認。",
       doctor:"把能參考的地方和限制一起交給我。這份報告可以開始討論了。"});
     else rounds.push({id:"uncertainty",title:"缺少文獻，怎麼交出報告？",mode:"agree",
-      mission:"本輪沒有收入文獻。用已走過的判讀路徑，支持保留疑問的說法。",
-      ammo:["signal","review:C","group:L02"],correct:{line:"unknown",bullet:"review:C"},
+      mission:mazeResults.C?"本輪沒有收入文獻。用已走過的判讀路徑，支持保留疑問的說法。":"本輪沒有收入文獻。回到院端原單，支持保留疑問的說法。",
+      ammo:mazeResults.C?["signal","review:C","group:L02"]:["signal","group:L02","culture:L02"],correct:{line:"unknown",bullet:mazeResults.C?"review:C":"group:L02"},
       lines:[
         line("empty","這輪案卷沒有收入外部文獻。"),
         line("available","院端仍有菌群回報可以追溯。"),
         line("gap","物種層級和致病角色，還缺足夠證據。"),
         line("unknown","所以應該","保留疑問，等待確認","。","agree")
       ],
-      hint:"查第二關實際留下的 K. variicola 路徑。它最後到哪個出口？",
-      reply:"這輪沒有收入文獻，就如實留下。迷宮的路徑仍指向待複核，缺少的部分保持未知。",
+      hint:mazeResults.C?"查第二關實際留下的 K. variicola 路徑。它最後到哪個出口？":"查 FilmArray 原單。它回報的是菌群，還是個別物種？",
+      reply:mazeResults.C?"這輪沒有收入文獻，就如實留下。迷宮的路徑仍指向待複核，缺少的部分保持未知。":"這輪沒有收入文獻，就如實留下。院端回報仍停在菌群層級，物種與致病角色保留待確認。",
       correction:"保留院端菌群線索，註明本輪未收入外部文獻；物種及致病角色仍待確認。",
       doctor:"留下已知與缺口，我們才能知道下一步還要查什麼。"});
     return {cards,rounds};

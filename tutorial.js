@@ -42,6 +42,16 @@
     return step("gather-take-" + missing,action("token",token),"取出「" + labels[missing] + "」",copy[missing]);
   }
 
+  function labyrinth() {
+    const session=state.labyrinth;
+    if (!session || session.dialog) return null;
+    if (session.complete) return step("labyrinth-finished",action("review-next"),"把走過的線索帶去下一站",
+      "這次探索了念珠菌路線。接著帶原始案卷裡 K. variicola 的疑問去文獻室。","繼續調查");
+    if (session.visited.length>2 || acknowledged.has("labyrinth-walk")) return null;
+    return step("labyrinth-walk",".labyrinth-controls .dpad","先試著走幾步",
+      "方向鍵、WASD 或點石板路都能走，手機可按住方向按鈕。靠近發光牌子會自動看見線索。","我知道了");
+  }
+
   function maze() {
     const session = state.maze;
     if (!session || session.walking || session.drawer === "book") return null;
@@ -110,7 +120,7 @@
     if (!state) return null;
     if (state.view === "travel") return step("travel-go",action("walk-goal"),"先走到這關的目的地",
       "你可以按這個按鈕，讓偵探走到櫃檯。也能用方向鍵、WASD 或點地圖移動；到站後會接上劇情和操作教學。");
-    const lessons = {gather,maze,literature,debate,report};
+    const lessons = {gather,maze,labyrinth,literature,debate,report};
     return lessons[state.view]?.() || null;
   }
 
@@ -206,7 +216,7 @@
 
   function update(snapshot) {
     state = snapshot;
-    const supported = ["travel","gather","maze","literature","debate","report"].includes(state.view);
+    const supported = ["travel","gather","maze","labyrinth","literature","debate","report"].includes(state.view);
     const nextGroup = supported ? state.view : "";
     help.hidden = !supported;
     if (nextGroup !== group) {

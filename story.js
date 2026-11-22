@@ -65,6 +65,19 @@
     ];
   }
 
-  window.BreathStory = {intro,chapters,ending};
+  const explorationChapter = {
+    target:"呼吸道迷宮",objective:"帶著白色念珠菌，沿紀錄找出能由證據支持的出口。",label:"帶著念珠菌出發",
+    task:"用方向鍵、WASD 或點石板路移動。走近牌子會自動出現線索，手機可按住方向按鈕。",
+    script:[
+      frame("牆後是一條條連在一起的走廊。小小的念珠菌跟在偵探身旁，遠處幾扇門還沒有亮。",{prop:"呼吸道迷宮｜同行候選：白色念珠菌"}),
+      detective("它的讀數最高。我先帶它找出口，看看一路上的紀錄能說到哪裡。",{face:1}),
+      doctor("培養的來源和還缺的檢查，都留在路上的紀錄裡。走近看看，記得別把不知道的事補成答案。",{cue:"phone"}),
+      thought("這次先帶一隻菌走。遇到走不通的路，就看看哪一條線索還沒接上。",{motion:"inspect"})
+    ]
+  };
+  function chapter(state,index=state.chapter) {
+    return index===1 && state.mazeMode==="explore" ? explorationChapter : chapters[index];
+  }
+  window.BreathStory = {intro,chapters,ending,chapter};
 })();
 

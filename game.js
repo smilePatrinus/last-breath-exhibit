@@ -14,15 +14,16 @@
   const fields = { id: "檢體編號", date: "採檢時間", type: "檢體類型", result: "檢驗結果" };
   const seals = { same: "同檢體證據", other: "其他檢體參考" };
   let state, drag, swipe, ignoreClickUntil = 0, resetToast, audio;
-  let muted = false, mapControl, mazeControl, debateControl;
-  const activity = ["gather","maze","literature","debate"];
+  let muted = false, mapControl, mazeControl, debateControl, labyrinthControl;
+  const mazeView = new URLSearchParams(location.search).get("maze") === "rules" ? "maze" : "labyrinth";
+  const activity = ["gather",mazeView,"literature","debate"];
   const sceneViews = ["intro","brief","ending"];
 
   function reset() {
     tutorial.reset();
     state = {
       view: "title", chapter: -1, beat: 0, source: "excel", slide: "L02", draft: {}, token: "", slot: "",
-      records: [], filed: [], maze: null, debate: null, demo: false,
+      records: [], filed: [], maze: null, labyrinth: null, debate: null, demo: false, demoMaze: false, mazeMode: mazeView === 'maze' ? 'rules' : 'explore',
       paper: 0, marks: [], kept: [], submitted: false, position: null
     };
     render(true);
@@ -75,10 +76,11 @@
   }
 
   function go(view, chapter = state.chapter) {
-    if (view === "maze" && !state.maze) {
+    if (["maze","labyrinth"].includes(view) && !state.maze) {
       state.maze = window.BreathMazeRules.create();
       state.filed = state.records.map((record) => ({...record,scope:content.chooseScope(record)}));
     }
+    if (view === "labyrinth" && !state.labyrinth) state.labyrinth = window.BreathLabyrinthData.create();
     if (view === "debate" && !state.debate)
       state.debate = window.BreathDebateData.create(state.records,state.maze.results,state.kept);
     state.view = view;
@@ -100,8 +102,9 @@
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
       '<p class="hero-copy">檢驗報告有好幾個名字。<br>哪一個和這次感染有關？</p>' +
       button("開始調查 <span aria-hidden=\"true\">→</span>", "start", "", {kind:"primary hero-button"}) +
-      '<div class="hero-demo">' + button("試玩第四關 · 言彈議論","demo-debate") +
-      '<p class="hero-meta">使用已整理的模擬案卷，直接體驗議論。</p></div>' +
+      '<div class="hero-demo">' + button("試玩第二關 · 迷宮探路","demo-maze") +
+      button("試玩第四關 · 言彈議論","demo-debate") +
+      '<p class="hero-meta">快速試玩使用預先整理的模擬案卷。</p></div>' +
       '<p class="hero-meta">四關 · 可用滑鼠、鍵盤或觸控</p></div></section>';
   }
 
@@ -115,7 +118,7 @@
   }
 
   function guide() {
-    const chapter = plot.chapters[state.chapter];
+    const chapter = plot.chapter(state);
     return '<details class="work-guide"><summary>醫師留言 · 任務提示</summary><p>' +
       html(chapter.objective + chapter.task) + '</p></details>';
   }
@@ -176,6 +179,28 @@
       (gathered ? '<ul class="collected" aria-label="已收錄紀錄">' + gathered + '</ul>' : "") +
       (state.records.length === 2 ? '<div class="actions">' + button("帶著案卷前往判讀迷宮", "gather-next", "", {kind:"primary"}) + '</div>' : "") +
       '</section></div>';
+  }
+
+  function labyrinth() {
+    return heading("呼吸道迷宮","帶著一隻候選菌，沿路上的紀錄找到出口。") +
+      (state.demoMaze ? '<p class="reference labyrinth-demo-link">第二關試玩 · 第一關資料已放進背包，本輪從迷宮開始。</p>' : "") +
+      window.BreathLabyrinth.render(state.labyrinth,button,html);
+  }
+
+  function visitLabyrinth(id) {
+    if (window.BreathLabyrinthData.visit(state.labyrinth,id,state.records)) {
+      if (state.labyrinth.complete) state.maze.results.B = state.labyrinth.result;
+      play(state.labyrinth.complete ? "done" : "tick");
+      render(false);
+    }
+  }
+
+  function demoMaze() {
+    reset();
+    state.demoMaze = true;
+    state.records = content.records.filter(record => ["L01","L02"].includes(record.id));
+    state.filed = state.records.map(record => ({...record,scope:content.chooseScope(record)}));
+    go("brief",1);
   }
 
   function maze() {
@@ -271,6 +296,8 @@
   }
 
   function reportCard(item) {
+    const exploredLabel = state.demo ? "示範案卷中的既有判讀路徑" :
+      item.decisions?.length ? "本關實際探索的路徑" : "依原始案卷整理；本關未探索此候選";
     const evidence = window.BreathMazeRules.cards(state.records,item.id);
     const decisions = (item.decisions || []).map((entry) => {
       const card = evidence.find((record) => record.id === entry.evidence);
@@ -289,7 +316,7 @@
     return '<details id="candidate-' + item.id + '" class="panel report-card" ' + (item.id === "C" ? "open" : "") + '><summary><span class="candidate">' +
       item.id + '</span><span><strong>' + html(item.name) + '</strong><small>' + html(item.scientific) +
       '</small></span><span class="tag ' + item.grade + '">' + item.tier + '</span></summary>' +
-      '<div class="report-body"><p>' + html(item.signal) + '</p><ol class="trail">' +
+      '<div class="report-body"><p class="labyrinth-report-source">' + html(exploredLabel) + '</p><p>' + html(item.signal) + '</p><ol class="trail">' +
       item.path.map((text) => '<li>' + html(text) + '</li>').join("") + '</ol><p>' + html(item.reason) + '</p>' +
       (decisions ? '<details class="maze-audit"><summary>查看迷宮裡的選擇與依據</summary><ul class="citations">' + decisions + '</ul></details>' : "") +
       (records ? '<h3>院端紀錄</h3><ul class="citations">' + records + '</ul>' : "") +
@@ -305,7 +332,8 @@
         '</p><small>依據：' + html(state.debate.cards.find(card => card.id === item.evidence)?.title || item.evidence) + '</small></li>').join("") +
       '</ol></details>' : "";
     return heading(state.submitted ? "調查報告" : "交回調查報告", "原始來源、候選判讀路徑與議論核對結果，放進同一份案卷。") +
-      (state.demo ? '<p class="reference">第四關試玩 · 使用預先整理的模擬案卷。</p>' : "") +
+      (state.demo ? '<p class="reference">第四關試玩 · 使用預先整理的模擬案卷。</p>' :
+        state.demoMaze ? '<p class="reference">第二關試玩 · 使用預先整理的第一關資料。</p>' : "") +
       '<p class="reference report-reply">已完成四段證據核對。保留成立的支持，也留下物種與致病角色仍待確認的地方。</p>' +
       debateLog + '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept, state.maze?.results).map(reportCard).join("") + '</div>' +
       '<div class="report-footer"><p>報告會附上原單、保留的文獻與尚待確認的線索。</p>' +
@@ -321,7 +349,8 @@
       ["交付可追溯的結果","回到原始資料核對，保留仍待查證的候選與理由。"]
     ];
     return '<section class="hero last">' + art("room") + '<div class="hero-content"><p class="eyebrow">調查報告已送達診療室</p>' +
-      (state.demo ? '<p class="reference debate-demo-note">第四關試玩完成 · 使用預先整理的模擬案卷。</p>' : "") +
+      (state.demo ? '<p class="reference debate-demo-note">第四關試玩完成 · 使用預先整理的模擬案卷。</p>' :
+        state.demoMaze ? '<p class="reference">第二關試玩完成 · 第一關資料已預先整理，本輪實際完成後續探索。</p>' : "") +
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
       '<div class="closing-copy"><p>你整理了 ' + state.records.length + ' 份採檢紀錄，完成 ' + Object.keys(state.maze.results).length +
       ' 條候選判讀路徑，並保留 ' + state.kept.length + ' 篇可供對照的文獻。</p>' +
@@ -334,9 +363,11 @@
       '</ul><p class="hint">D07 的檢體、日期與檢驗數值皆為模擬。公開文獻在各卡片另有標示。</p></details>';
   }
 
-  const views = {title, travel, gather, maze, literature, debate, report, done};
+  const views = {title, travel, gather, maze, labyrinth, literature, debate, report, done};
 
   function render(focus) {
+    labyrinthControl?.stop();
+    labyrinthControl = null;
     debateControl?.stop();
     debateControl = null;
     mazeControl?.stop();
@@ -380,6 +411,10 @@
         (position) => {state.maze.position = position;});
       const dialogButton = screen.querySelector(".maze-message button");
       if (dialogButton) dialogButton.focus({preventScroll:true});
+    }
+    if (state.view === "labyrinth") {
+      labyrinthControl = window.BreathLabyrinth.mount(screen,state.labyrinth,visitLabyrinth,(message)=>toast(message));
+      screen.querySelector(".labyrinth-message button")?.focus({preventScroll:true});
     }
     if (state.view === "debate") {
       debateControl = window.BreathDebate.mount(screen,state.debate,fireDebate,selectDebateAmmo);
@@ -477,6 +512,23 @@
   const actions = {
     start: () => { go("intro"); play("phone"); },
     "demo-debate": demoDebate,
+    "demo-maze": demoMaze,
+    "labyrinth-landmark": (id) => labyrinthControl?.toLandmark(id),
+    "labyrinth-close": () => {
+      state.labyrinth.dialog=null;
+      render(false);
+      screen.querySelector(".labyrinth-viewport")?.focus({preventScroll:true});
+      screen.querySelector(".labyrinth-board")?.scrollIntoView({block:"start"});
+    },
+    "labyrinth-read": (id) => {
+      if (!state.labyrinth.seen.includes(id) || state.labyrinth.dialog) return;
+      visitLabyrinth(id);
+    },
+    "labyrinth-replay": () => {
+      state.labyrinth=window.BreathLabyrinthData.create();
+      state.maze.results={};
+      render(true);
+    },
     "debate-ammo": selectDebateAmmo,
     "debate-start": () => {
       if (!state.debate.selected || state.debate.phase !== "ready") return;
@@ -604,6 +656,11 @@
 
   function keydown(event) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || dialog.open) return;
+    if (state.view === "labyrinth" && state.labyrinth.dialog && event.key === "Tab") {
+      event.preventDefault();
+      screen.querySelector(".labyrinth-message button")?.focus();
+      return;
+    }
     if (state.view === "debate" && state.debate.feedback && event.key === "Tab") {
       event.preventDefault();
       screen.querySelector(".debate-feedback button")?.focus();
@@ -715,4 +772,5 @@
   window.addEventListener("pointercancel", (event) => endPointer(event,true));
   reset();
   if (new URLSearchParams(location.search).get("demo") === "debate") demoDebate();
+  else if (new URLSearchParams(location.search).get("demo") === "maze") demoMaze();
 })();
