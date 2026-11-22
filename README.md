@@ -8,12 +8,31 @@
 
 解壓縮，保留原有檔案結構，從瀏覽器開啟 `index.html`。完整故事和關卡可離線跑完。音效預設開啟，右上角可切換。
 
-- 對話以「繼續」、右方向鍵或空白鍵推進。開場可略過。
+- 對話以「繼續」、右方向鍵或空白鍵推進。開場可略過；也可按「上一句」或左方向鍵重看圖解。
 - 地圖可用方向鍵或 WASD 移動，也可點石板路、地圖上的目的地或底部「走到…」按鈕。到站會接上該關的劇情。
 - 地圖與關卡支援觸控。資料拖曳、迷宮走路和文獻滑卡各有點按操作。手機也可直接點地圖的方向按鈕。
 - 每關第一次操作會出現框選教學。提示會跟著你實際完成的動作前進，先帶一份紀錄或一張文件，再讓你繼續練習。
 - 可按「略過教學」關閉提示，也可從頂端「看操作教學」重新打開當前步驟。按 Esc 也能收起教學。
 - 每關的「醫師留言」保留這關的目的和操作。「重新開始」會清除本輪紀錄，並重開各關教學。
+
+## 圖解序章
+
+醫師與偵探用三組說明板逐步帶出研究背景，對話仍由玩家點擊推進：
+
+1. **mNGS 是什麼**：檢體 → 定序片段（reads）→ 參考資料庫比對 → 檢出清單，隨對話逐步亮起。
+2. **檢出為什麼不等於致病**：背景訊號、定植與感染相關的可能；三者不固定對應本案的 A、B、C。背景訊號可能在採檢或處理過程帶入；定植則指微生物存在於該部位，卻未必造成當次感染。
+3. **研究要解決什麼**：把既有的 Excel 採檢紀錄、PPT 檢驗截圖、臨床資料與 mNGS 報告對齊，再整合檢體、時間、宿主及其他證據。圖解呈現檢驗概念；本專題從既有報告出發，未將遊戲包裝成實驗室定序流程。
+
+接回 D07 時仍保留原有的「採檢日／核發日」疑點，再進入第一關。這裡不先替任何候選下結論。圖像由本 repo 原創 SVG 與可讀文字組成，不使用外站圖片或遊戲素材；手機改成上方說明板、下方人物與對話。「上一句」可回看，略過則直接進入第一關前的走圖。
+
+`intro-visuals.js` 保存圖解，`intro-visuals.css` 負責桌機與手機排版，對話仍保存在 `story.js`。
+
+背景參考：
+
+- [Gu 等：Clinical Metagenomic Next-Generation Sequencing for Pathogen Detection](https://nextgendiagnostics.ucsf.edu/wp-content/uploads/2019/04/annurev_Gu.pdf)：定序、分析、品質控制及污染訊號的判讀。
+- [Chiu 與 Miller：Clinical metagenomics](https://pmc.ncbi.nlm.nih.gov/articles/PMC6858796/)：微生物檢出結果需要結合臨床脈絡。
+- [IDSA 念珠菌指引第 IX 節](https://www.idsociety.org/practice-guideline/candidiasis/)：呼吸道念珠菌檢出需考慮定植，不能單憑呼吸道培養推定感染。
+- [《活俠傳》官方宣傳片](https://www.youtube.com/watch?v=dn2Cb_I3aac)：角色立繪與對話呈現的參考；本作採自己的角色、場景與說明板。
 
 ## 關卡
 
@@ -30,7 +49,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=14&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=14&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=15&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=15&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -70,7 +89,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=14&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=15&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。

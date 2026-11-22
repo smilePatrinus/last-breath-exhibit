@@ -400,8 +400,11 @@
         '</b><span>' + chapter.short + '</span></span>';
     }).join("");
     if (focus) {
-      window.scrollTo(0, 0);
       tabFocus();
+      const teachingBoard = state.view === "intro" && screen.querySelector(".lesson-board");
+      if (teachingBoard && window.matchMedia("(max-width: 620px)").matches) {
+        teachingBoard.scrollIntoView({block:"start"});
+      } else window.scrollTo(0, 0);
     } else if (key) {
       Array.from(screen.querySelectorAll("[data-action]")).find((control) =>
         control.dataset.action === key.action && control.dataset.value === key.value)?.focus({preventScroll:true});
@@ -564,6 +567,11 @@
     },
     skip: () => go("travel", 0),
     advance,
+    "rewind-intro": () => {
+      if (state.view !== "intro" || state.beat === 0) return;
+      state.beat -= 1;
+      render(true);
+    },
     "walk-goal": () => mapControl?.walkTo(),
     "walk-step": (direction) => mapControl?.step(direction),
     "to-source": () => focusSource(),
@@ -672,6 +680,11 @@
     if (state.view === "maze" && state.maze.feedback && event.key === "Tab") {
       event.preventDefault();
       screen.querySelector(".maze-message button")?.focus();
+      return;
+    }
+    if (state.view === "intro" && event.key === "ArrowLeft") {
+      event.preventDefault();
+      actions["rewind-intro"]();
       return;
     }
     if (sceneViews.includes(state.view) && (event.key === "ArrowRight" ||

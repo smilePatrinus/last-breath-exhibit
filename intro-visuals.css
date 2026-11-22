@@ -1,0 +1,138 @@
+/* The physician brings out a teaching board while the two actors stay on stage. */
+.cinematic.has-lesson {
+  min-height: 670px;
+  grid-template-rows: 1fr auto;
+}
+.has-lesson .scene-prop {
+  position: relative; left: auto; top: auto; transform: none;
+  width: min(650px,68%); max-width: none; margin: 46px auto 26px; align-self: start;
+}
+.has-lesson .cast { width: min(355px,34%); left: -4%; bottom: 143px }
+.has-lesson .cast.doctor { left: auto; right: -4% }
+.has-lesson .cinematic-dialogue { width: min(100%,960px) }
+.lesson-board {
+  width: 100%; margin: 0; padding: 18px 22px 12px;
+  border: 1px solid #b2be9d; border-radius: 5px;
+  background: linear-gradient(135deg,#192e38fa,#11232efc);
+  box-shadow: 0 0 0 4px #10202bb0,0 16px 30px #040d1680;
+  color: #f2ebdc; text-align: left;
+  animation: board-reveal .3s ease-out;
+}
+.lesson-heading { padding-bottom: 12px; border-bottom: 1px solid #5a7b795e }
+.lesson-kicker {
+  display: flex; justify-content: space-between; gap: 12px;
+  color: #a8cfbf; font-size: .73rem; letter-spacing: .13em; margin-bottom: 8px;
+}
+.lesson-kicker span { color: #debc7f; font-variant-numeric: tabular-nums }
+.lesson-heading h2 { color: #f3d69d; font: 700 clamp(1.15rem,2.3vw,1.5rem)/1.3 var(--serif); }
+.lesson-heading > p:last-child { margin-top: 4px; color: #c6d1ca; font-size: .82rem }
+.lesson-flow {
+  display: grid; grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px; padding: 0; margin: 14px 0; list-style: none;
+}
+.lesson-flow li,.lesson-possibility {
+  position: relative; display: grid; justify-items: center; align-content: start;
+  padding: 10px 4px 9px; border: 1px solid #4f6c73; border-radius: 4px;
+  background: #162631; text-align: center;
+}
+.lesson-flow li:not(:last-child)::after {
+  content: "›"; position: absolute; z-index: 1; right: -10px; top: 37px;
+  width: 10px; color: #c5d8c4; font-size: 1.3rem; line-height: 1;
+}
+.lesson-step {
+  position: absolute; left: 6px; top: 4px; color: #99b7b9;
+  font-size: .67rem; font-variant-numeric: tabular-nums;
+}
+.lesson-icon { display: block; width: 68px; height: 70px; flex: none }
+.lesson-flow strong,.lesson-possibility strong { font-size: .88rem; line-height: 1.4; margin: 5px 0 3px }
+.lesson-flow small,.lesson-possibility small { color: #bbc9c7; font-size: .72rem; line-height: 1.5 }
+.lesson-flow .is-seen { border-color: #7caaa0; background: #1b343b }
+.lesson-flow .is-current,.lesson-possibility.is-current {
+  border-color: #f0c780; background: #3c3c2a; box-shadow: inset 0 0 0 1px #d3ab6766;
+}
+.is-current .lesson-step { color: #f3d59d }
+.is-current .lesson-icon { animation: board-point .5s ease-out }
+.lesson-note {
+  border-left: 3px solid #d5b776; padding: 8px 11px;
+  background: #0d1c25; min-height: 69px;
+}
+.lesson-note strong { display: block; color: #edcf95; font-size: .92rem; line-height: 1.5 }
+.lesson-note p { color: #d2ddda; font-size: .84rem; margin-top: 3px; line-height: 1.65 }
+.lesson-footnote { color: #acbcb9; font-size: .69rem; line-height: 1.6; margin-top: 9px }
+.lesson-possibilities { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; margin: 14px 0 }
+.lesson-possibility .lesson-icon { width: 73px; height: 76px }
+.lesson-evidence { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin: 14px 0 }
+.lesson-evidence > div { padding: 10px 12px; background: #1f3840; border: 1px solid #577a78; border-radius: 4px }
+.lesson-evidence b { display: block; font-size: .93rem; color: #b9dfce }
+.lesson-evidence span { display: block; font-size: .79rem; color: #c5d2cd; margin-top: 4px }
+.lesson-dossier { margin: 13px 0 }
+.lesson-sources { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px }
+.lesson-sources > span { display: grid; justify-items: center; gap: 3px; font-size: .84rem }
+.lesson-sources small { color: #afc2bc; font-size: .7rem }
+.lesson-sources i {
+  display: grid; place-items: center; width: 35px; height: 40px;
+  font: 750 1.2rem/1 var(--sans); border: 1px solid #d7e6d180; border-radius: 2px;
+  box-shadow: 4px 4px 0 #0a1c26;
+}
+.source-excel { background: #366d52 }
+.source-ppt { background: #995332 }
+.source-mngs { background: #4d6878 }
+.lesson-join { text-align: center; color: #d0b67d; font-size: 1.6rem; line-height: 1.3; margin: 5px 0 }
+.lesson-folder { display: flex; justify-content: center; align-items: center; gap: 10px; background: #263b3f; border: 1px solid #77968b; padding: 3px 8px }
+.lesson-folder .lesson-icon { width: 48px; height: 51px }
+.lesson-folder b { display: block; color: #edcf97; font-size: .92rem }
+.lesson-folder small { display: block; color: #c5d0c6; font-size: .72rem; margin-top: 3px }
+.cinematic[data-lesson="report"] .lesson-note { border-left-color: #e4b28f }
+.cinematic[data-lesson="possibilities"] .lesson-heading h2 { color: #f4be96 }
+@keyframes board-reveal { from { opacity: .3; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes board-point { 50% { transform: translateY(-4px) } }
+@media (min-width: 1600px) {
+  .has-lesson .cast { left: 0 }
+  .has-lesson .cast.doctor { left: auto; right: 0 }
+}
+@media (max-width: 900px) and (min-width: 621px) {
+  .has-lesson .scene-prop { width: 75% }
+  .lesson-board { padding: 16px 14px 12px }
+}
+@media (max-width: 620px) {
+  .cinematic.has-lesson { min-height: 0; grid-template-rows: auto 100px auto; padding: 12px; align-items: stretch }
+  .has-lesson .scene-prop { grid-row: 1; width: 100%; margin: 44px 0 0; }
+  .has-lesson .actors { grid-row: 2; position: relative; inset: auto; height: 100px; overflow: hidden }
+  .has-lesson .cast { width: 190px; max-width: 58%; bottom: -65px; left: 0 }
+  .has-lesson .cast.doctor { left: auto; right: 0 }
+  .has-lesson .cinematic-dialogue { grid-row: 3; align-self: stretch }
+  .lesson-board { padding: 13px 12px 10px }
+  .lesson-heading { padding-bottom: 9px }
+  .lesson-heading h2 { font-size: 1.17rem }
+  .lesson-heading > p:last-child { font-size: .76rem }
+  .lesson-flow { gap: 7px; margin: 11px 0; grid-template-columns: repeat(2,minmax(0,1fr)) }
+  .lesson-flow li { display: grid; grid-template-columns: 40px 1fr; justify-items: start; padding: 7px 5px 7px 7px; text-align: left; align-content: center }
+  .lesson-flow .lesson-icon { width: 36px; height: 40px; grid-row: 1 / span 2 }
+  .lesson-flow strong { font-size: .8rem; margin: 0; align-self: end }
+  .lesson-flow small { font-size: .66rem; align-self: start }
+  .lesson-flow .lesson-step { top: 0; left: 2px; font-size: .55rem }
+  .lesson-flow li:not(:last-child)::after { display: none }
+  .lesson-flow .is-current { box-shadow: inset 0 0 0 1px #c5aa69 }
+  .lesson-note { padding: 7px 9px; min-height: 75px }
+  .lesson-note strong { font-size: .84rem }
+  .lesson-note p { font-size: .79rem }
+  .lesson-footnote { font-size: .65rem; margin-top: 7px }
+  .lesson-possibilities { gap: 5px; margin: 11px 0 }
+  .lesson-possibility { padding: 5px 2px 7px }
+  .lesson-possibility .lesson-icon { width: 53px; height: 55px }
+  .lesson-possibility strong { font-size: .74rem; margin-top: 3px }
+  .lesson-possibility small { font-size: .63rem }
+  .lesson-evidence { gap: 7px; margin: 11px 0 }
+  .lesson-evidence > div { padding: 8px }
+  .lesson-evidence b { font-size: .84rem }
+  .lesson-evidence span { font-size: .72rem; line-height: 1.5 }
+  .cinematic[data-scene-mode="intro"] .scene-actions { flex-wrap: wrap }
+  .cinematic[data-scene-mode="intro"] .scene-actions .beat-count { position: absolute; right: 12px; top: 12px; font-size: .73rem }
+  .cinematic[data-scene-mode="intro"] .speaker-line { padding-right: 55px }
+  .cinematic[data-scene-mode="intro"] .scene-actions .small { padding-inline: 8px; font-size: .75rem }
+  .cinematic[data-scene-mode="intro"] .scene-actions .primary { min-width: 76px }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-board,.is-current .lesson-icon { animation: none }
+}
+

@@ -46,6 +46,8 @@
     root.dataset.scene = scene;
     root.dataset.voice = line.role;
     root.classList.toggle("has-report",Boolean(line.report));
+    root.classList.toggle("has-lesson",Boolean(line.lesson));
+    root.dataset.lesson = line.lesson || "";
     root.classList.toggle("has-rift",Boolean(line.rift));
     root.classList.toggle("has-trace",Boolean(line.trace));
     root.classList.toggle("quiet-opening",mode === "intro" && state.beat === 0);
@@ -62,13 +64,16 @@
     }
     const prop = root.querySelector(".scene-prop");
     prop.innerHTML = (line.prop ? '<p class="prop-label">' + html(line.prop) + '</p>' : "") + (line.report ? report : "");
-    prop.hidden = !line.prop && !line.report;
+    if (line.lesson) prop.innerHTML = window.BreathIntroVisuals.render(line.lesson);
+    prop.hidden = !line.prop && !line.report && !line.lesson;
+    prop.setAttribute("aria-hidden",line.lesson ? "false" : "true");
     root.querySelector(".story-speaker").textContent = roles[line.role];
     root.querySelector(".story-line").textContent = line.body.replace("{summary}",state.kept.length ?
       "我留下了 " + state.kept.length + " 篇和本案可對照的文獻，限制也一起寫進去了。" :
       "這一輪的案卷沒有留文獻。關於 K. variicola，我只能交回院端的群組線索。");
     root.querySelector(".scene-actions").innerHTML =
       '<span class="beat-count">' + (state.beat+1) + ' / ' + current.length + '</span>' +
+      (mode === "intro" && state.beat > 0 ? button("上一句", "rewind-intro", "", {kind:"quiet small"}) : "") +
       (mode === "intro" ? button("略過序章", "skip", "", {kind:"quiet small"}) : "") +
       button(html(label) + ' <span aria-hidden="true">›</span>',"advance","",{kind:"primary"});
   }
