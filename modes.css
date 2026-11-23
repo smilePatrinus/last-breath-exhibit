@@ -58,3 +58,21 @@ body[data-difficulty="hard"] .debate-speaker { z-index: 4 }
   .hard-time { font-size: 1.3rem }
   .mode-rules,.easy-import { padding: 12px }
 }
+
+.labyrinth-keybag { border-color: #b6a579 }
+.labyrinth-keybag h2 { color: #ffe1a4; font-size: 1rem }
+.key-count { color: #f6d187; font-variant-numeric: tabular-nums }
+.labyrinth-keybag > p { font-size: .85rem; margin-top: 9px; color: #c2d0c4 }
+.labyrinth-keybag ul { padding: 0; list-style: none; margin-top: 12px }
+.labyrinth-keybag li { display: flex; align-items: center; gap: 8px; border-top: 1px solid #52685e; padding: 10px 0 }
+.labyrinth-keybag li > div { flex: 1; min-width: 0 }
+.labyrinth-keybag li b { display: block; font-size: .87rem; color: #dce5d5 }
+.labyrinth-keybag li small { display: block; color: #b0c2b5; font-size: .75rem; margin-top: 4px }
+.labyrinth-keybag .missing b,.labyrinth-keybag .missing .bag-key { color: #8da197 }
+.bag-key { font-size: 1.4rem; color: #f9d581 }
+.labyrinth-keybag button { flex: none; min-height: 40px; padding-inline: 8px; font-size: .8rem }
+.labyrinth-sign.key { background: #413b27ed; border-color: #f3ce80; color: #fff0ba }
+.labyrinth-sign.gate { background: #38312bed; border-color: #bfa17c }
+.labyrinth-minimap .clue-key { fill: #f6d178 }
+.labyrinth-minimap .locked-gate { fill: #c89171; stroke: #243f3b; stroke-width: .15 }
+.key-completion { color: #f4d49a; margin: 12px 0 }

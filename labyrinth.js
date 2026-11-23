@@ -8,7 +8,7 @@
   const tiles=new Image(),sprite=new Image();
   tiles.src="./assets/maze-tiles.png";sprite.src="./assets/detective-walk.png";
   function minimap(state) {
-    const grid=data.floorPlan({found:{specimen:true,missing:true}});
+    const grid=data.floorPlan({found:Object.fromEntries(data.gates.map(gate=>[gate.id,true]))});
     const known=new Set(state.explored||[]);
     const cells=[];
     grid.forEach((row,y)=>row.forEach((floor,x)=>{
@@ -17,15 +17,16 @@
     return '<svg viewBox="0 0 '+data.width+' '+data.height+'" role="img" aria-label="已探索區域，金點是你的位置">'+
       '<g class="labyrinth-mini-floor">'+cells.join("")+'</g><path class="labyrinth-hint-route" d="" fill="none" aria-hidden="true"/>'+
       data.landmarks.map(item=>'<circle data-mini-landmark="'+item.id+'" cx="'+(item.x+.5)+'" cy="'+(item.y+.5)+'" r=".6" class="'+
-        (state.seen.includes(item.id)?"read":item.type==="exit"?"exit":"landmark")+(known.has(item.x+','+item.y)?'':' undiscovered')+'"/>').join("")+
+        (state.seen.includes(item.id)?"read":item.type==="exit"?"exit":item.type==="key"?"clue-key":item.type==="gate"?"locked-gate":"landmark")+(known.has(item.x+','+item.y)?'':' undiscovered')+'"/>').join("")+
       '<circle class="labyrinth-mini-player" cx="'+(state.position.x+.5)+'" cy="'+(state.position.y+.5)+'" r=".7"/></svg>';
   }
   function render(state,button,html) {
     if(state.complete && !state.dialog) return '<section class="panel labyrinth-finish"><p class="eyebrow">白色念珠菌 · 本輪探索完成</p>'+
       '<h2>找到了出口，也留下了證據的界線。</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。</p>'+
+      (state.difficulty==="hard"?'<p class="key-completion">線索鑰匙 '+(state.keys?.length||0)+' / 6 · 已解鎖 '+state.quizAnswers.length+' / 6 道大門</p>':"")+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=18&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=19&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -34,6 +35,15 @@
       '<div class="labyrinth-fact '+(state.found.missing?"known":"")+'"><b>侵襲性證據</b><p>'+
       (state.found.missing?"未提供 · 保持未知":"還沒核對資料範圍")+'</p>'+
       (state.found.missing?button("重讀範圍","labyrinth-read","missing",{kind:"quiet small"}):"")+'</div></section>';
+    const keyBag=state.difficulty==="hard"?'<section class="panel labyrinth-keybag"><div class="panel-top"><h2>線索鑰匙包</h2>'+
+      '<strong class="key-count">'+(state.keys?.length||0)+' / 6</strong></div><p>先在角落找線索，再回對應的大門使用。</p><ul>'+
+      data.landmarks.filter(item=>item.type==="key").sort((a,b)=>a.number-b.number).map(item=>{
+        const owned=state.keys?.includes(item.id),used=Boolean(state.found[item.doorId]);
+        return '<li class="'+(owned?'owned':'missing')+'"><span class="bag-key" aria-hidden="true">⚿</span><div><b>'+
+          (owned?html(item.label):'第 '+item.number+' 把：未找到')+'</b><small>'+
+          (owned?'對應第 '+item.number+' 道大門 · '+(used?'已解鎖':'尚未使用'):'探索迷宮周圍的支路')+'</small></div>'+
+          (owned?button("重讀","labyrinth-read",item.id,{kind:"quiet small",attrs:' aria-label="重讀'+html(item.label)+'"'}):'')+'</li>';
+      }).join("")+'</ul></section>':"";
     let dialog="";
     if(state.dialog) {
       const clue=state.dialog;
@@ -60,7 +70,7 @@
       '<div class="labyrinth-controls"><p>在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small></p>'+
       '<div class="dpad">'+[["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([id,label,name])=>
         button(label,"labyrinth-move",id,{attrs:' aria-label="向'+name+'移動"'+(state.dialog?' disabled':"")})).join("")+
-      '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+journal+
+      '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+keyBag+journal+
       '<details class="panel labyrinth-minimap" open><summary>看已探索的區域</summary>'+minimap(state)+
       '<p>只記下照亮過的附近；金點是你。</p><p class="labyrinth-hint-status" hidden>金色虛線是提示路徑，沿著它走到下一份線索。</p></details></aside></div>';
   }
@@ -162,7 +172,16 @@
       for(const key of visited){const [x,y]=key.split(",").map(Number);ctx.fillRect(x*size+7,y*size+7,18,18);}
       for(const item of data.landmarks){
         const read=state.seen.includes(item.id),x=(item.x+.5)*size,y=(item.y+.5)*size;
-        if(item.type==="record" || item.type==="quiz")tile(ctx,3,x-17,y-17,34,34);
+        if(item.type==="key") {
+          const color=read?"#7f9c8c":"#ffe18b";
+          ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(x-5,y-3,5,0,Math.PI*2);ctx.stroke();
+          ctx.fillStyle=color;ctx.fillRect(x,y-4,16,3);ctx.fillRect(x+8,y-1,3,6);ctx.fillRect(x+14,y-1,3,5);
+        }
+        else if(item.type==="gate") {
+          ctx.fillStyle=state.found[item.id]?"#a6d49d":"#bd9771";
+          ctx.fillRect(x-7,y-6,14,12);ctx.fillStyle="#172f38";ctx.fillRect(x-2,y-2,4,6);
+        }
+        else if(item.type==="record" || item.type==="quiz")tile(ctx,3,x-17,y-17,34,34);
         else if(item.type==="blocked"){
           ctx.save();ctx.beginPath();ctx.rect(item.x*size,item.y*size,size,size);ctx.clip();
           tile(ctx,2,item.x*size,item.y*size,size,size);ctx.restore();
