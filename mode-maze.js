@@ -1,22 +1,39 @@
 (function () {
   "use strict";
   function easy(base) {
-    const spawn={x:2,y:10},width=19,height=13;
-    const landmarks=[{id:"specimen",x:5,y:9,label:"培養紀錄",type:"record"},
-      {id:"missing",x:12,y:6,label:"其他證據",type:"record"},{id:"exit",x:16,y:2,label:"保留脈絡",type:"exit"}];
-    const gates=[{id:"specimen",x:8,y:6,axis:"x",message:"先查看培養紀錄。"},
-      {id:"missing",x:16,y:4,axis:"y",message:"先查看其他證據。"}];
+    const spawn={x:3,y:20},width=29,height=23;
+    const landmarks=[{id:"specimen",x:5,y:5,label:"培養紀錄",type:"record"},
+      {id:"missing",x:18,y:4,label:"其他證據",type:"record"},{id:"exit",x:26,y:2,label:"保留脈絡",type:"exit"}];
+    const gates=[{id:"specimen",x:12,y:12,axis:"x",message:"先到左側紀錄室核對培養來源，再通過這扇門。"},
+      {id:"missing",x:21,y:7,axis:"x",message:"先到上方紀錄室查看其他證據，再前往出口區。"}];
     function floorPlan(state) {
       const grid=Array.from({length:height},()=>Array(width).fill(false));
       const line=(x,y,a,b)=>{while(true){grid[y][x]=true;if(x===a&&y===b)break;x+=Math.sign(a-x);y+=Math.sign(b-y);}};
-      line(2,10,5,10);line(5,10,5,6);line(5,6,16,6);line(16,6,16,2);
-      line(5,6,3,6);line(12,6,12,8);
+      const room=(left,top,right,bottom)=>{for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++)grid[y][x]=true;};
+      // Entrance plaza, a small loop, and the first archive.
+      room(2,18,6,21);
+      line(4,18,4,13);line(4,13,8,13);line(8,13,8,7);
+      room(4,4,9,8);
+      line(4,13,4,10);line(4,10,8,10);
+      line(4,15,2,15);line(2,15,2,11);
+      line(8,12,15,12);
+      // The courtyard has two ways around its central wall and a short side room.
+      room(14,10,18,14);
+      line(16,10,16,6);room(14,3,19,7);
+      line(14,10,14,8);line(14,8,19,8);line(19,8,19,7);
+      line(17,14,17,17);room(18,16,20,18);line(17,17,18,17);
+      line(19,7,24,7);
+      // Walk around the bend to the exit instead of spawning next to it.
+      line(24,7,24,11);line(24,11,26,11);line(26,11,26,3);
+      room(24,1,27,4);
+      line(24,9,22,9);line(22,9,22,12);
+      line(26,11,26,15);room(23,14,26,17);
       gates.forEach(g=>{if(!state.found[g.id])grid[g.y][g.x]=false;});
       return grid;
     }
-    return {width,height,spawn,landmarks,gates,visionRadius:7.5,
-      inSight:(p,c,r=7.5)=>Math.hypot(c.x-p.x,c.y-p.y)<=r,floorPlan,
-      create:()=>({...base.create(),position:{...spawn},visited:["2,10"],difficulty:"easy",hintGoal:"specimen"})};
+    return {width,height,spawn,landmarks,gates,visionRadius:6,
+      inSight:(p,c,r=6)=>Math.hypot(c.x-p.x,c.y-p.y)<=r,floorPlan,
+      create:()=>({...base.create(),position:{...spawn},visited:["3,20"],difficulty:"easy",hintGoal:"specimen"})};
   }
   function hard(base) {
     const width=63,height=43,spawn={x:1,y:41};

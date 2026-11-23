@@ -8,14 +8,14 @@
 
 開始畫面可選簡單、普通、困難；預設普通。重新開始保留這次選的模式，回到標題後可再換。快速試玩也沿用選定模式。分享時可使用：
 
-- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=19&difficulty=easy)
-- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=19&difficulty=normal)
-- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=19&difficulty=hard)
+- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=20&difficulty=easy)
+- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=20&difficulty=normal)
+- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=20&difficulty=hard)
 
 | 關卡 | 簡單 | 普通 | 困難 |
 | --- | --- | --- | --- |
 | 整理紀錄 | 兩份檢體，可一次帶入四格，再核對收錄 | 原本三筆候選紀錄，逐欄取出、收錄兩份 | 十份檢體、採檢／收件／核發時間、完整與單項結果；暫存後整批核對 |
-| 判讀迷宮 | 19×13 小地圖、較大視野、自動金色路線 | 原本 31×23 自由探索與圓形視野 | 63×43 原地形、較小視野；先在角落支路找六把線索鑰匙，再回對應大門解題開鎖 |
+| 判讀迷宮 | 29×23 小迷宮、入口與紀錄室、小迴圈及短岔路；較大視野與金色引導 | 原本 31×23 自由探索與圓形視野 | 63×43 原地形、較小視野；先在角落支路找六把線索鑰匙，再回對應大門解題開鎖 |
 | 查閱文獻 | 三篇，預先圈好相符檢體並顯示建議理由 | 原本五篇，保留即時提示與限制 | 十二篇，每段文字都可圈；先暫存取捨，全部送出才揭示正誤，錯了整批重做 |
 | 言彈議論 | 每段只有一枚言彈，預先裝填，兩句發言，預設強動態 | 原本四段議論、4.2 秒換句，保留集中與暫停 | 每段 75 秒，3.6 秒換句；配錯扣 8 秒，打歪／遮擋扣 4 秒，兩塊移動開合的障礙可擋視線與彈道 |
 
@@ -34,6 +34,12 @@
 走到鑰匙會讀到線索並收進鑰匙包，不會直接開門。回到對應大門，才用已取得的線索回答封印問題；沒鑰匙不能解題，答錯不消耗鑰匙。鑰匙包可重讀線索，標示對應門與使用狀態。六道大門和原始來源核對完成後，才可抵達出口。
 
 簡單版第四關仍是一枚言彈、兩句發言，預設改為強動態；保留集中與手動切換低動態。
+
+## 簡單版第二關的走路地圖
+
+簡單版使用 29×23 的房間與走廊地圖：從入口廣場走到左側紀錄室，經過中央庭院與上方證據室，最後繞過出口區的彎道。包含小迴圈和可回頭的短岔路，線索與出口分開配置，不再只走一條短通道。
+
+角色需自行移動到紀錄與出口，金色路線只指路。保留方向鍵、WASD、觸控方向鈕與點亮處石板路的移動方式；兩道證據門仍需依序核對來源才能通過。
 
 ## 開始調查
 
@@ -92,7 +98,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=19&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=19&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=20&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=20&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -132,7 +138,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=19&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=20&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。
