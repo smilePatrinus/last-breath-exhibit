@@ -17,6 +17,12 @@
   quickHint.hidden = true;
 
   function gather() {
+    if (state.difficulty === "easy") {
+      if (state.records.length === 2) return step("easy-gather-done",action("gather-next"),"兩份都收好了，前往迷宮","按亮框的按鈕，帶著案卷出發。");
+      if (Object.keys(state.draft).length === 4) return step("easy-gather-collect",action("collect"),"核對來源，再收錄這份紀錄","快速帶入已整理四格。看過右邊與 PPT 的編號後，按「收錄這份紀錄」。");
+      const record = window.BreathContent.records.find(r=>!state.records.some(x=>x.id===r.id));
+      return step("easy-gather-import-"+record.id,action("easy-import",record.id),"先快速帶入 "+record.id,"按這張檢體卡，四格和原始來源會一起帶入。");
+    }
     if (state.records.length) return step("gather-done",".collected","第一份紀錄已完成",
       "你已把 Excel 和 PPT 接成一張可追查的紀錄。接著整理另一份在收件窗內的資料，完成兩份就能進入判讀迷宮。","換我試試");
     const selectedId = state.token.split(":")[0];
@@ -240,7 +246,7 @@
   function update(snapshot, controls) {
     state = snapshot;
     if (controls) assists = controls;
-    const supported = ["travel","gather","maze","labyrinth","literature","debate","report"].includes(state.view);
+    const supported = state.difficulty !== "hard" && ["travel","gather","maze","labyrinth","literature","debate","report"].includes(state.view);
     const nextGroup = supported ? state.view : "";
     help.hidden = !supported;
     quickHint.hidden = !supported;

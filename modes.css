@@ -1,0 +1,60 @@
+.difficulty-picker { border: 0; padding: 0; margin: 23px 0 0; max-width: 900px; }
+.difficulty-picker legend { color: #e4c994; font-size: .9rem; margin-bottom: 9px }
+.difficulty-picker > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px }
+.difficulty-card { display: grid; align-content: start; gap: 4px; padding: 12px; min-height: 132px; text-align: left; border: 1px solid #5b747c; border-radius: 7px; background: #152a36f5; color: #e6e9dd }
+.difficulty-card strong { font-size: 1.15rem; color: #f2d196 }
+.difficulty-card span { font-size: .82rem; color: #bce0cf }
+.difficulty-card small { font-size: .77rem; line-height: 1.55; color: #c4d0c9 }
+.difficulty-card.selected { border: 2px solid #f1cf87; padding: 11px; background: #30403bec; box-shadow: 0 0 0 2px #e9c78920 }
+.difficulty-description { display: none }
+.difficulty-card:focus-visible { outline: 3px solid #ffe3a0; outline-offset: 3px }
+.hero:has(.difficulty-picker) .hero-content { width: min(100%,960px) }
+body[data-difficulty="hard"] .hero .hero-copy { color: #f4ddc2 }
+.mode-rules,.easy-import { margin: 14px 0; border-color: #a28b5f }
+.mode-rules p,.easy-import p { margin: 8px 0; line-height: 1.65 }
+.easy-import > div { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px }
+.easy-import button { color: #d0f3df; border-color: #7da991 }
+.mode-errors { color: #ffccab; padding: 10px 12px; border: 1px solid #a77352; background: #452e2f; border-radius: 5px; margin: 10px 0; line-height: 1.65 }
+body[data-difficulty="hard"] .collected li { flex-wrap: wrap; gap: 5px }
+body[data-difficulty="hard"] .collected button { margin-left: auto }
+.batch-review { max-width: 880px; margin: 16px auto }
+.batch-review > p { margin-top: 12px; line-height: 1.8 }
+.batch-review ol { padding-left: 24px }
+.batch-review li { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; padding: 8px; border-bottom: 1px solid #4c6470 }
+.batch-review li span { flex: 1 }
+.batch-review li button { flex: none }
+body[data-difficulty="hard"] .phrase { color: inherit; background: transparent; border-color: transparent; box-shadow: none; border-radius: 2px }
+body[data-difficulty="hard"] .phrase.marked { background: #5f5740; border-bottom: 2px solid #f1ca84; color: #ffe5aa }
+body[data-difficulty="hard"] .phrase:hover { border-bottom-color: #bdcfc0 }
+body[data-difficulty="hard"] .workbook { overflow-x: auto }
+body[data-difficulty="hard"] .workbook-grid { min-width: 820px }
+body[data-difficulty="hard"] .slide-result { flex-wrap: wrap }
+body[data-difficulty="hard"] #help,body[data-difficulty="hard"] #quick-hint { display: none !important }
+.easy-paper-advice { color: #bde3ce; border-color: #75a58a; line-height: 1.7 }
+.maze-quiz-options { display: grid; gap: 9px; margin: 15px 0 }
+.maze-quiz-options button { justify-content: start; padding: 12px; min-height: 48px; text-align: left }
+.labyrinth-sign.quiz { border-color: #d2bb88; background: #393329 }
+.hard-debate-status { position: sticky; top: 0; z-index: 8; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; padding: 10px 14px; margin: 10px 0; color: #e9deca; background: #202a38f5; border: 1px solid #bd885e; border-radius: 6px }
+.hard-time { color: #ffe2a1; font-size: 1.6rem; font-variant-numeric: tabular-nums; min-width: 2ch; display: inline-block }
+.hard-penalty { color: #ffcba6; font-size: .85rem }
+.debate-obstacle { position: absolute; z-index: 3; border: 3px solid #a2a7a0; border-radius: 3px; background: repeating-linear-gradient(135deg,#334450 0 9px,#23333e 9px 18px); box-shadow: 0 4px 13px #0209138f; display: flex; align-items: center; justify-content: center; pointer-events: auto; cursor: crosshair; user-select: none }
+.debate-obstacle span { color: #e8d7b5; font-size: .75rem; writing-mode: vertical-rl; letter-spacing: .2em; padding: 5px; background: #101e2acc; pointer-events: none }
+body[data-difficulty="hard"] .debate-speaker { z-index: 4 }
+.debate-failed { border-color: #be8c72; max-width: 750px; margin: 25px auto }
+.debate-failed p { margin-top: 14px; line-height: 1.7 }
+@media (max-width:620px) {
+  .difficulty-picker { margin-top: 16px }
+  .difficulty-picker > div { gap: 6px }
+  .difficulty-card { padding: 9px 7px; min-height: 82px }
+  .difficulty-card.selected { padding: 8px 6px }
+  .difficulty-card strong { font-size: 1rem }
+  .difficulty-card span { font-size: .75rem }
+  .difficulty-card small { display: none }
+  .difficulty-description { display: block; font-size: .875rem; line-height: 1.65; color: #cddbcc; margin-top: 10px; min-height: 4.9em }
+  .hero:has(.difficulty-picker) { min-height: 0 }
+  .batch-review li { flex-wrap: wrap }
+  .batch-review li span { flex-basis: 100%; font-size: .9rem }
+  .hard-debate-status { gap: 3px 12px; font-size: .8rem }
+  .hard-time { font-size: 1.3rem }
+  .mode-rules,.easy-import { padding: 12px }
+}

@@ -111,7 +111,33 @@
       motion:"full",focus:false,paused:false,drawer:false,feedback:null,results:[],mistakes:0};
   }
   function current(state) {return state.rounds[state.index];}
-  function lineIndex(state) {return Math.floor(state.elapsed/lineDuration)%current(state).lines.length;}
+  function duration(state) {return state.lineDuration || lineDuration;}
+  function lineIndex(state) {return Math.floor(state.elapsed/duration(state))%current(state).lines.length;}
+  function penalize(state,kind) {
+    if(state.difficulty!=="hard" || state.phase!=="running" || state.feedback)return;
+    const seconds=kind==="wrong"?8:4;
+    state.timeLeft=Math.max(0,state.timeLeft-seconds*1000);
+    state.penalties[kind]=(state.penalties[kind]||0)+1;
+    state.penaltyNote=(kind==="wrong"?"證據配對錯誤":kind==="blocked"?"遮擋了視線或彈道":"沒有命中片語")+"，扣 "+seconds+" 秒";
+  }
+  function tick(state,now,active) {
+    if(state.difficulty!=="hard")return false;
+    const elapsed=state.timerStamp==null?0:Math.max(0,now-state.timerStamp);
+    state.timerStamp=now;
+    if(active)state.timeLeft=Math.max(0,state.timeLeft-elapsed);
+    return state.phase==="running" && state.timeLeft<=0;
+  }
+  function intersects(a,b,rect) {
+    let t0=0,t1=1;
+    const dx=b.x-a.x,dy=b.y-a.y;
+    for(const [p,q] of [[-dx,a.x-rect.left],[dx,rect.right-a.x],[-dy,a.y-rect.top],[dy,rect.bottom-a.y]]) {
+      if(p===0){if(q<0)return false;continue;}
+      const ratio=q/p;
+      if(p<0)t0=Math.max(t0,ratio);else t1=Math.min(t1,ratio);
+      if(t0>t1)return false;
+    }
+    return true;
+  }
   function evaluate(state,lineId) {
     const round=current(state),statement=round.lines.find(item=>item.id===lineId);
     if(state.phase!=="running" || state.feedback || state.drawer) return null;
@@ -127,6 +153,10 @@
   function shoot(state,lineId) {
     const outcome=evaluate(state,lineId);
     if(!outcome) return null;
+    if(!outcome.ok && state.difficulty==="hard") {
+      penalize(state,"wrong");
+      outcome.body="這枚言彈與推論沒有配對成功，扣 8 秒。重新核對案卷後再試。";
+    }
     state.focus=false;state.feedback=outcome;
     if(!outcome.ok) state.mistakes++;
     return outcome;
@@ -140,5 +170,5 @@
     state.index++;state.phase="ready";state.elapsed=0;state.selected="";state.focus=false;state.paused=false;state.feedback=null;
     if(state.index===state.rounds.length) state.phase="complete";
   }
-  window.BreathDebateData={lineDuration,build,create,current,lineIndex,evaluate,shoot,next};
+  window.BreathDebateData={lineDuration,duration,penalize,tick,intersects,build,create,current,lineIndex,evaluate,shoot,next};
 })();

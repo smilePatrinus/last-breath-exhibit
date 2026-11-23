@@ -5,6 +5,10 @@
     return state.motion === "reduced";
   }
   function render(state,button,html) {
+    if(state.phase==="failed")return '<section class="panel debate-failed" role="region"><p class="eyebrow">困難模式 · 本段倒數結束</p>'+
+      '<h2>時間到了，這段還沒有核對完成。</h2><p>已完成的前面段落會保留。重新裝填證據，再挑戰這一段。</p>'+
+      '<p>證據配錯 '+state.penalties.wrong+' 次 · 打歪 '+state.penalties.miss+' 次 · 遮擋 '+state.penalties.blocked+' 次</p>'+
+      '<div class="actions">'+button("重試這段","debate-retry-round","",{kind:"primary"})+'</div></section>';
     if(state.phase==="complete") return '<section class="panel debate-complete"><p class="eyebrow">議論結束 · 四段推論已核對</p>'+
       '<h2>讓證據能說到的地方，成為報告的界線。</h2><ol>'+state.results.map(item=>'<li><strong>'+
       html(item.title)+'</strong><p>'+html(item.correction)+'</p></li>').join("")+'</ol><div class="actions">'+
@@ -37,6 +41,7 @@
     return '<section class="debate-mission"><div><p class="eyebrow">言彈議論 · '+(state.index+1)+' / '+state.rounds.length+
       '</p><h2>'+html(round.title)+'</h2><p>'+html(round.mission)+'</p></div><span class="debate-mode '+round.mode+'">'+
       (round.mode==="agree"?"藍色 · 提出支持":"黃色 · 指出矛盾")+'</span></section>'+
+      (state.difficulty==="hard"?'<div class="hard-debate-status"><span>本段剩餘 <strong class="hard-time" role="timer" aria-live="off">'+Math.ceil(state.timeLeft/1000)+'</strong> 秒</span><span>配錯 −8 秒 · 打歪／遮擋 −4 秒</span><span class="hard-penalty" role="status"></span></div>':"")+
       '<section class="debate-board '+round.mode+' motion-'+(reducedMotion(state)?"reduced":"full")+'" aria-label="言彈議論">'+
       '<div class="debate-arena'+(ready?' is-ready':'')+'" tabindex="0" aria-label="議論舞台，Q E 切換言彈，空白鍵集中，Enter 對目前標記發射">'+
         '<div class="debate-ring" aria-hidden="true"></div><div class="debate-detective" aria-hidden="true"></div>'+
@@ -45,6 +50,7 @@
         '<div class="debate-speaker"><span class="debate-voice">案卷回聲</span><div class="debate-flow-tools"><span class="debate-flow-label">自動議論 · 可重聽</span>'+
         button(reducedMotion(state)?"動態：低":"動態：強","debate-motion","",{kind:"debate-motion",attrs:' aria-label="切換強動態與低動態"'})+'</div></div>'+
         '<div class="debate-utterance" aria-live="polite" aria-atomic="true"></div>'+
+        (state.difficulty==="hard"?'<div class="debate-obstacle obstacle-a" aria-hidden="true"><span>檔案雜訊</span></div><div class="debate-obstacle obstacle-b" aria-hidden="true"><span>訊號遮擋</span></div>':"")+
         '<p class="debate-aim-hint">裝填證據，瞄準'+(round.mode==="agree"?"藍色":"黃色")+'片語</p>'+
         '<div class="debate-crosshair" aria-hidden="true"></div>'+
         '<div class="debate-projectile" aria-hidden="true"></div>'+
@@ -60,13 +66,13 @@
           button("查看證據","debate-evidence","",{kind:"quiet small",attrs:!selected||state.feedback?' disabled':""})+
           button("集中 · 慢速","debate-focus","",{kind:"quiet small",attrs:' aria-pressed="'+state.focus+'"'+
             (ready||state.feedback||state.drawer?' disabled':"")})+
-          button("暫停","debate-pause","",{kind:"quiet small",attrs:ready||state.feedback||state.drawer?' disabled':""})+
+          button(state.difficulty==="hard"?"困難不暫停":"暫停","debate-pause","",{kind:"quiet small",attrs:state.difficulty==="hard"||ready||state.feedback||state.drawer?' disabled':""})+
           button("重聽本段","debate-replay","",{kind:"quiet small",attrs:ready||state.feedback||state.drawer?' disabled':""})+
         '</div></div><p class="debate-key-hint">點言彈切換，再點流動片語發射。鍵盤可用 Q／E 切換、按住空白集中、Enter 發射。</p>'+
         '<p class="debate-live-note" role="status" aria-live="polite"></p></div></section>';
   }
 
-  function mount(root,state,onHit,onAmmo) {
+  function mount(root,state,onHit,onAmmo,events={}) {
     const arena=root.querySelector(".debate-arena");
     if(!arena) return null;
     const utterance=root.querySelector(".debate-utterance");
@@ -79,6 +85,8 @@
     const echo=root.querySelector(".debate-echo");
     const motionButton=root.querySelector('[data-action="debate-motion"]');
     const round=data.current(state);
+    const duration=data.duration(state);
+    const obstacles=Array.from(root.querySelectorAll(".debate-obstacle"));
     let last=0,raf=0,stopped=false,shown=-1,held=false,shotTimer=0,impactTimer=0;
     const locked=()=>state.phase!=="running" || state.feedback || state.drawer || state.shotPending || document.querySelector("dialog[open]");
     function updateLine() {
@@ -104,11 +112,26 @@
     function draw(now) {
       if(stopped) return;
       const delta=last?Math.min(now-last,80):0;last=now;
+      const timedActive=state.phase==="running" && !state.feedback && !document.hidden && !document.querySelector("dialog[open]");
+      if(data.tick(state,now,timedActive)){events.timeout?.();return;}
+      const clock=root.querySelector(".hard-time");
+      if(clock)clock.textContent=String(Math.ceil(state.timeLeft/1000));
+      const penalty=root.querySelector(".hard-penalty");
+      if(penalty && penalty.textContent!==state.penaltyNote)penalty.textContent=state.penaltyNote;
       if(!locked() && !state.paused && !document.hidden) state.elapsed+=delta*((held||state.focus)?0.25:1);
       updateLine();
-      const progress=(state.elapsed%data.lineDuration)/data.lineDuration;
+      const progress=(state.elapsed%duration)/duration;
       const reduced=reducedMotion(state);
       const width=arena.clientWidth,height=arena.clientHeight;
+      obstacles.forEach((obstacle,index)=>{
+        const time=state.elapsed/1000;
+        // Each shutter opens regularly; every statement must have a fair shot window.
+        obstacle.hidden=(state.elapsed/1700+index*.15)%1>.62;
+        obstacle.style.left=(width*(.4+.26*Math.sin(time*.8+index*2.7)))+"px";
+        obstacle.style.top=(height*(index?.52:.23)+height*.05*Math.sin(time*1.1+index))+"px";
+        obstacle.style.width=Math.max(62,width*.16)+"px";
+        obstacle.style.height=Math.max(64,height*.18)+"px";
+      });
       const textWidth=utterance.offsetWidth,textHeight=utterance.offsetHeight;
       const direction=shown%2 ? -1 : 1;
       const travel=Math.max(12,(width-textWidth)/2-14);
@@ -132,7 +155,7 @@
       const hint=!playing?"待開始":state.feedback?"已命中":state.drawer?"查看證據":state.paused?"已暫停":
         reduced?"低動態":held||state.focus?"集中慢速":"流動中";
       root.querySelector(".debate-flow-label").textContent=hint+" · "+(shown+1)+" / "+round.lines.length+
-        (state.elapsed>=data.lineDuration*round.lines.length?" · 重播":"");
+        (state.elapsed>=duration*round.lines.length?" · 重播":"");
       board.classList.toggle("motion-reduced",reduced);
       board.classList.toggle("motion-full",!reduced);
       if(motionButton) motionButton.textContent=reduced?"動態：低":"動態：強";
@@ -141,7 +164,7 @@
       utterance.style.setProperty("--text-scale",reduced?1:scale);
       utterance.style.setProperty("--drift",visual+"px");
       utterance.style.opacity=String(reduced||!playing?1:opacity);
-      echo.style.opacity=String(!reduced&&playing&&state.elapsed>=data.lineDuration?Math.max(0,0.2-progress*.65):0);
+      echo.style.opacity=String(!reduced&&playing&&state.elapsed>=duration?Math.max(0,0.2-progress*.65):0);
       echo.style.transform="translate("+(-direction*(width*.15+progress*width)) +"px,0) rotate("+(-angle)+"deg)";
       echo.style.top=(height*(shown%2?.26:.66))+"px";
       arena.style.setProperty("--rush",!reduced&&playing&&!state.paused&&!locked()?0.12+(progress<.15||progress>.84?.2:0):0);
@@ -149,7 +172,7 @@
       arena.classList.toggle("concentrating",Boolean(held||state.focus));
       focusButton?.setAttribute("aria-pressed",String(Boolean(held||state.focus)));
       if(focusButton) focusButton.textContent=held||state.focus?"集中中 · 慢速":"集中 · 慢速";
-      if(pauseButton) pauseButton.textContent=state.paused?"繼續議論":"暫停";
+      if(pauseButton) pauseButton.textContent=state.difficulty==="hard"?"困難不暫停":state.paused?"繼續議論":"暫停";
       if(pausedLabel) pausedLabel.hidden=!state.paused || Boolean(locked());
       raf=requestAnimationFrame(draw);
     }
@@ -173,7 +196,11 @@
     const click=(event)=>{
       if(locked() || event.target.closest("button,.debate-ready,.debate-feedback,.debate-drawer")) return;
       showShot(event.clientX,event.clientY);
-      status.textContent="沒有命中標記片語。集中放慢，瞄準有底色的那一段。";
+      const blocked=Boolean(event.target.closest(".debate-obstacle"));
+      events.miss?.(blocked?"blocked":"miss");
+      if(stopped)return;
+      status.textContent=state.difficulty==="hard"?(blocked?"遮擋攔住了言彈，扣 4 秒。等空隙再發射。":"打歪了，扣 4 秒。瞄準標記片語。"):
+        "沒有命中標記片語。集中放慢，瞄準有底色的那一段。";
     };
     const down=(event)=>{
       if(event.ctrlKey || event.altKey || event.metaKey || event.target.closest("input,textarea") || locked()) return;
@@ -190,7 +217,7 @@
         event.preventDefault();
         const current=round.lines[data.lineIndex(state)];
         if(current.target) onHit(current.id);
-        else status.textContent="目前這句沒有標記片語。等下一句出現再瞄準。";
+        else {events.miss?.("miss");status.textContent="目前這句沒有標記片語。等下一句出現再瞄準。";}
       }
     };
     const up=(event)=>{if(event.code==="Space")held=false;};
@@ -209,6 +236,15 @@
         const visibleHeight=Math.min(box.bottom,rect.bottom)-Math.max(box.top,rect.top);
         const visible=visibleWidth>=Math.min(34,rect.width*.4) && visibleHeight>=Math.min(24,rect.height*.5);
         if(!visible)status.textContent="等標記片語進入畫面，再瞄準發射。";
+        if(visible && state.difficulty==="hard") {
+          const from={x:box.left+box.width*.1,y:box.top+box.height*.9};
+          const to={x:rect.x+rect.width/2,y:rect.y+rect.height/2};
+          if(obstacles.some(node=>!node.hidden && data.intersects(from,to,node.getBoundingClientRect()))) {
+            events.miss?.("blocked");
+            if(!stopped){status.textContent="彈道被遮擋，扣 4 秒。等空隙，或集中後再瞄準。";showShot(to.x,to.y);}
+            return false;
+          }
+        }
         return visible;
       },
       impact(id,resolve){
@@ -229,7 +265,7 @@
       },
       focus(){if(!locked())state.focus=!state.focus;},
       motion(){if(!state.shotPending && !state.feedback)state.motion=reducedMotion(state)?"full":"reduced";},
-      pause(){if(!locked())state.paused=!state.paused;},
+      pause(){if(!locked() && state.difficulty!=="hard")state.paused=!state.paused;},
       replay(){if(!locked()){state.elapsed=0;state.paused=false;status.textContent="從本段第一句重新播放。";}},
       stop(){
         stopped=true;cancelAnimationFrame(raf);clearTimeout(shotTimer);clearTimeout(impactTimer);

@@ -1,37 +1,43 @@
 (function () {
   "use strict";
   const {records,caseInfo} = window.BreathContent;
-  const columns = {id:"B",date:"C",type:"D"};
+  const columns = {id:"B",date:"C",type:"D",received:"E",reported:"F"};
 
   function address(record,key) {
     return columns[key] + record.row;
   }
 
   function value(record,key) {
+    if (key === "received") return caseInfo.year + "/" + record.received;
+    if (key === "reported") return caseInfo.year + "/" + record.tests[record.tests.length-1].released;
+    if (key === "partial") return record.tests[0].label + "：" + record.tests[0].finding;
     return key === "date" ? record.dateTime : record[key];
   }
 
   function origin(record,key) {
-    return key === "result" ? "病程彙整.pptx · " + record.doc : "採檢清冊.xlsx · 採檢紀錄!" + address(record,key);
+    return ["result","partial"].includes(key) ? "病程彙整.pptx · " + record.doc : "採檢清冊.xlsx · 採檢紀錄!" + address(record,key);
   }
 
   function workbook(selected, renderToken, html) {
+    const hard = window.BreathModes?.isHard();
     const [id,key] = selected.split(":");
     const active = records.find((record) => record.id === id && columns[key]);
     const top = active ? address(active,key) : "A1";
     const formula = active ? value(active,key) : "病例代號";
     const rows = records.map((record) => '<tr><th scope="row">' + record.row + '</th><td>' + caseInfo.patient +
       '</td><td>' + renderToken(record,"id") + '</td><td>' + renderToken(record,"date") +
-      '</td><td>' + renderToken(record,"type") + '</td></tr>').join("");
+      '</td><td>' + renderToken(record,"type") + '</td>' +
+      (hard ? '<td>'+renderToken(record,"received")+'</td><td>'+renderToken(record,"reported")+'</td>' : '') + '</tr>').join("");
     return '<div class="office workbook"><div class="office-title"><b aria-hidden="true">X</b>' +
       '<strong>採檢清冊.xlsx</strong><span>模擬資料</span></div><div class="formula-bar">' +
       '<span>' + top + '</span><i>fx</i><div>' + html(formula) + '</div></div>' +
       '<table class="workbook-grid" aria-label="採檢紀錄工作表"><colgroup><col class="row-index"><col class="patient-col">' +
-      '<col class="id-col"><col class="date-col"><col class="type-col"></colgroup><thead><tr class="column-address">' +
-      '<td></td><td>A</td><td>B</td><td>C</td><td>D</td></tr>' +
+      '<col class="id-col"><col class="date-col"><col class="type-col">' + (hard ? '<col><col>' : '') + '</colgroup><thead><tr class="column-address">' +
+      '<td></td><td>A</td><td>B</td><td>C</td><td>D</td>' + (hard ? '<td>E</td><td>F</td>' : '') + '</tr>' +
       '<tr><th aria-label="工作表第 1 列">1</th><th scope="col">病例代號</th><th scope="col">檢體編號</th>' +
-      '<th scope="col">採檢時間</th><th scope="col">檢體類型</th></tr></thead><tbody>' + rows +
-      '</tbody></table><div class="sheet-footer"><span>採檢紀錄</span><small>3 筆紀錄</small></div></div>';
+      '<th scope="col">採檢時間</th><th scope="col">檢體類型</th>' +
+      (hard ? '<th scope="col">收件時間</th><th scope="col">核發時間</th>' : '') + '</tr></thead><tbody>' + rows +
+      '</tbody></table><div class="sheet-footer"><span>採檢紀錄</span><small>' + records.length + ' 筆紀錄</small></div></div>';
   }
 
   function labReport(record, html, controls = {}) {
@@ -60,7 +66,8 @@
       '<nav class="slide-rail" aria-label="投影片">' + pages + '</nav>' +
       '<section class="report-slide"><header><p>病例 ' + caseInfo.patient + ' · ' + active.doc + '</p><h3>' +
       html(active.slideTitle) + '</h3></header><div class="report-inset">' + labReport(active,html,{date:dates}) +
-      '</div><div class="slide-result"><span>帶入紀錄表</span>' + renderToken(active,"result") + '</div>' +
+      '</div><div class="slide-result"><span>帶入紀錄表</span>' + renderToken(active,"result") +
+      (window.BreathModes?.isHard() && active.tests.length>1 ? '<span>單項結果節錄</span>'+renderToken(active,"partial") : '') + '</div>' +
       '</section></div></div>';
   }
 

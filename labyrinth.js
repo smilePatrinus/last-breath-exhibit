@@ -25,7 +25,7 @@
       '<h2>找到了出口，也留下了證據的界線。</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。</p>'+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=17&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=18&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -43,6 +43,9 @@
         '</p><div class="labyrinth-paper">'+html(clue.fact)+'</div>'+
         (clue.source?'<small class="labyrinth-source">'+html(clue.source)+'</small>':"")+
         (clue.reward?'<p class="labyrinth-reward">'+html(clue.reward)+'</p>':"")+
+        (clue.quizId ? '<div class="maze-quiz-options">'+clue.options.map((option,index)=>button(html(option),"maze-answer",String(index),{kind:"quiet"})).join("")+'</div>'+
+          (clue.error?'<p class="mode-errors" role="status">'+html(clue.error)+'</p>':'')+
+          '<p class="hint">'+html(clue.reference)+'</p>' : '')+
         '<div class="actions">'+button(state.complete?"收起探索紀錄":"繼續探索","labyrinth-close","",{kind:"primary"})+'</div></section>';
     }
     const landmarks=data.landmarks.map(item=>button(html(item.label),"labyrinth-landmark",item.id,{
@@ -71,6 +74,8 @@
     const miniCells=new Map(Array.from(root.querySelectorAll('[data-cell]'),node=>[node.dataset.cell,node]));
     const miniLandmarks=new Map(Array.from(root.querySelectorAll('[data-mini-landmark]'),node=>[node.dataset.miniLandmark,node]));
     canvas.width=data.width*size;canvas.height=data.height*size;
+    canvas.style.width=canvas.width+"px";canvas.style.height=canvas.height+"px";
+    camera.style.width=canvas.width+"px";camera.style.height=canvas.height+"px";
     const ctx=canvas.getContext("2d"),grid=data.floorPlan(state);
     const base=document.createElement("canvas");
     base.width=canvas.width;base.height=canvas.height;
@@ -157,7 +162,7 @@
       for(const key of visited){const [x,y]=key.split(",").map(Number);ctx.fillRect(x*size+7,y*size+7,18,18);}
       for(const item of data.landmarks){
         const read=state.seen.includes(item.id),x=(item.x+.5)*size,y=(item.y+.5)*size;
-        if(item.type==="record")tile(ctx,3,x-17,y-17,34,34);
+        if(item.type==="record" || item.type==="quiz")tile(ctx,3,x-17,y-17,34,34);
         else if(item.type==="blocked"){
           ctx.save();ctx.beginPath();ctx.rect(item.x*size,item.y*size,size,size);ctx.clip();
           tile(ctx,2,item.x*size,item.y*size,size,size);ctx.restore();

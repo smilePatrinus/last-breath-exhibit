@@ -1,6 +1,7 @@
 (function () {
   "use strict";
   const content = window.BreathContent;
+  const modes = window.BreathModes;
   const documents = window.BreathDocuments;
   const tutorial = window.BreathTutorial;
   const plot = window.BreathStory;
@@ -20,12 +21,16 @@
   const sceneViews = ["intro","brief","ending"];
 
   function reset() {
+    modes.apply();
+    activity[1] = modes.id() === "normal" ? mazeView : "labyrinth";
     tutorial.reset();
     state = {
       view: "title", chapter: -1, beat: 0, source: "excel", slide: "L02", draft: {}, token: "", slot: "",
       records: [], filed: [], maze: null, labyrinth: null, debate: null, demo: false, demoMaze: false, mazeMode: mazeView === 'maze' ? 'rules' : 'explore',
       paper: 0, marks: [], kept: [], submitted: false, position: null
     };
+    modes.init(state);
+    state.mazeMode = activity[1] === "maze" ? "rules" : "explore";
     render(true);
   }
 
@@ -81,8 +86,10 @@
       state.filed = state.records.map((record) => ({...record,scope:content.chooseScope(record)}));
     }
     if (view === "labyrinth" && !state.labyrinth) state.labyrinth = window.BreathLabyrinthData.create();
-    if (view === "debate" && !state.debate)
+    if (view === "debate" && !state.debate) {
       state.debate = window.BreathDebateData.create(state.records,state.maze.results,state.kept);
+      modes.debate(state.debate);
+    }
     state.view = view;
     state.chapter = chapter;
     state.beat = 0;
@@ -92,7 +99,7 @@
 
   const art = (scene) => '<div class="scene-art ' + scene + '" aria-hidden="true"></div>';
   const heading = (name, description) =>
-    '<header class="work-heading" data-station="' + state.chapter + '">' + art(content.chapter[state.chapter].scene) + '<div><p class="eyebrow">' + content.chapter[state.chapter].place + '</p>' +
+    '<header class="work-heading" data-station="' + state.chapter + '">' + art(content.chapter[state.chapter].scene) + '<div><p class="eyebrow">' + content.chapter[state.chapter].place + ' · '+modes.label()+'模式</p>' +
     '<h1 tabindex="-1" data-focus>' + name + '</h1><p>' + description + '</p></div>' +
     '<span class="chapter-number">' + content.chapter[state.chapter].num + '<span> / 04</span></span></header>' + guide();
 
@@ -101,6 +108,7 @@
       '<div class="hero-content"><p class="eyebrow">肺 城 調 查 錄</p>' +
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
       '<p class="hero-copy">檢驗報告有好幾個名字。<br>哪一個和這次感染有關？</p>' +
+      modes.cards(button) +
       button("開始調查 <span aria-hidden=\"true\">→</span>", "start", "", {kind:"primary hero-button"}) +
       '<div class="hero-demo">' + button("試玩第二關 · 迷宮探路","demo-maze") +
       button("試玩第四關 · 言彈議論","demo-debate") +
@@ -119,7 +127,7 @@
 
   function guide() {
     const chapter = plot.chapter(state);
-    return '<details class="work-guide"><summary>醫師留言 · 任務提示</summary><p>' +
+    return '<details class="work-guide"><summary>' + (modes.isHard() ? "任務說明 · 操作規則" : "醫師留言 · 任務提示") + '</summary><p>' +
       html(chapter.objective + chapter.task) + '</p></details>';
   }
 
@@ -132,11 +140,12 @@
     return button(visible, "token", token, {
       kind: "token " + (state.token === token ? "selected" : ""),
       attrs: ' data-drag="token" draggable="false"' + pressed(state.token === token) +
-        ' aria-label="' + html(record.id + " " + fields[key] + " " + value) + '"'
+        ' aria-label="' + html(record.id + " " + (fields[key] || {received:"收件時間",reported:"核發時間",partial:"單項結果"}[key]) + " " + value) + '"'
     });
   }
 
   function gather() {
+    const expectedCount = content.records.filter(content.fitWindow).length;
     const excel = state.source === "excel";
     const sourcePanel = excel ? documents.workbook(state.token,sourceToken,html) :
       documents.powerpoint(getRecord(state.slide),button,sourceToken,html);
@@ -147,22 +156,24 @@
       result:"從 PPT 翻到同一個檢體編號，把檢驗結果帶入。"
     };
     const nextField = Object.keys(fields).find((key) => !state.draft[key]);
-    const guideText = state.records.length === 2 ? "兩張卡完成了。帶著原始紀錄進入判讀迷宮，沿不同菌種的規則找線索。" :
+    const guideText = modes.isHard() ? "先暫存要保留的檢體，最後核對整份收件清單；可移除後重新整理。" : state.records.length === expectedCount ? "兩張卡完成了。帶著原始紀錄進入判讀迷宮，沿不同菌種的規則找線索。" :
       (prompts[nextField] || "核對欄位都來自同一份檢體，再把紀錄收進案卷。");
     const slots = Object.entries(fields).map(([key, title]) => {
       const value = state.draft[key];
-      const body = value ? '<strong>' + html(documents.value(value.record,key)) + '</strong><small>' + value.origin + '</small>' :
+      const body = value ? '<strong>' + html(documents.value(value.record,value.key || key)) + '</strong><small>' + value.origin + '</small>' :
         '<span>將' + title + '放在這裡</span>';
       return '<div class="field"><span>' + title + '</span>' + button(body, "slot", key, {
         kind: "drop " + (value ? "filled " : "") + (state.slot === key ? "selected" : ""),
-        attrs: ' data-drop="token"' + pressed(state.slot === key) + ' aria-label="' + html(title + " " + (value ? documents.value(value.record,key) : "空白")) + '"'
+        attrs: ' data-drop="token"' + pressed(state.slot === key) + ' aria-label="' + html(title + " " + (value ? documents.value(value.record,value.key || key) : "空白")) + '"'
       }) + '</div>';
     }).join("");
     const gathered = state.records.map((record) => '<li><strong>' + record.id + '</strong> <span>' +
-      record.date + ' · ' + record.sampleCode + ' · ' + html(record.result) + '</span></li>').join("");
+      record.date + ' · ' + record.sampleCode + ' · ' + html(record.result) + '</span>' +
+      (modes.isHard() ? button("移除","remove-record",record.id,{kind:"quiet small"}) : '') + '</li>').join("");
     return heading("失序的紀錄", "把本次感染附近的原始檢驗，整理成能追查的紀錄。") +
+      modes.gatherAssist(state,button,html) +
       '<div class="reference case-strip"><span>病例 D07 · mNGS 採檢基準</span><strong>L02 · BAL · 11/18</strong>' +
-      '<span>採檢收件窗 11/15–11/21</span><details class="case-brief case-reference"><summary>翻開本次 mNGS 報告</summary>' +
+      '<span>採檢收件窗 ' + html(content.caseInfo.interval) + '</span><details class="case-brief case-reference"><summary>翻開本次 mNGS 報告</summary>' +
       '<div class="case-brief-body"><p>' + content.caseInfo.symptom + '</p><p>檢體 L02 · BAL · 11/18 採檢 · ' +
       content.caseInfo.sequencingReport + ' 核發</p><table><thead><tr><th scope="col">候選學名</th><th scope="col">讀數</th></tr>' +
       '</thead><tbody>' + Object.values(content.candidates).map((item) =>
@@ -173,11 +184,12 @@
       button("檢驗 PPT", "source", "ppt", {attrs: pressed(!excel)}) + '</div></div>' +
       '<p class="hint">拖曳來源欄位，或點資料後再點紀錄表。</p>' + sourcePanel + '</section>' +
       '<section class="panel clipboard"><div class="panel-top"><h2>採檢紀錄表</h2><span>' +
-      state.records.length + ' / 2 份</span></div><p class="next-step">' + guideText + '</p>' + slots + '<div class="mobile-return">' + button("回原始資料 ↑", "to-source", "", {kind:"quiet small"}) + '</div>' +
+      state.records.length + (modes.isHard() ? ' 份暫存' : ' / '+expectedCount+' 份') + '</span></div><p class="next-step">' + guideText + '</p>' + slots + '<div class="mobile-return">' + button("回原始資料 ↑", "to-source", "", {kind:"quiet small"}) + '</div>' +
       '<div class="actions">' + button("清空欄位", "clear", "", {attrs:Object.keys(state.draft).length ? "" : " disabled"}) +
       button("收錄這份紀錄", "collect", "", {kind:"primary"}) + '</div>' +
       (gathered ? '<ul class="collected" aria-label="已收錄紀錄">' + gathered + '</ul>' : "") +
-      (state.records.length === 2 ? '<div class="actions">' + button("帶著案卷前往判讀迷宮", "gather-next", "", {kind:"primary"}) + '</div>' : "") +
+      ((modes.isHard() ? state.records.length > 0 : state.records.length === expectedCount) ? '<div class="actions">' +
+      button(modes.isHard() ? "核對收件清單" : "帶著案卷前往判讀迷宮", "gather-next", "", {kind:"primary"}) + '</div>' : "") +
       '</section></div>';
   }
 
@@ -199,7 +211,7 @@
   function demoMaze() {
     reset();
     state.demoMaze = true;
-    state.records = content.records.filter(record => ["L01","L02"].includes(record.id));
+    state.records = content.records.filter(content.fitWindow);
     state.filed = state.records.map(record => ({...record,scope:content.chooseScope(record)}));
     go("brief",1);
   }
@@ -221,13 +233,17 @@
   }
 
   function literature() {
+    if (modes.isHard() && state.paper >= content.literature.length)
+      return heading("整批核對文獻","送出後才顯示這一批的正誤。") + modes.paperReview(state,button,html);
     const paper = currentPaper();
-    const excerpt = paper.segments.map((part, index) => part.key || part.hint ?
+    const excerpt = paper.segments.map((part, index) => modes.isHard() || part.key || part.hint ?
       button(html(part.text), "mark", String(index), {
         kind: "phrase " + (state.marks.includes(index) ? "marked" : ""),
         attrs: pressed(state.marks.includes(index))
       }) : html(part.text)).join("");
     return heading("候選複核室", "一次讀一篇。圈出能與本案對照的線索，再決定要不要存入案卷。") +
+      (modes.isHard() ? '<section class="panel mode-rules"><p>十二篇批次判讀：收入同菌種的呼吸道病例背景，正確圈出檢體部位。點錯不提示，全部送出後才揭示正誤；錯了需整批重做。</p></section>' :
+        modes.isEasy() ? '<p class="reference easy-paper-advice">建議'+(paper.fit?'收入':'略過')+'：'+html(paper.feedback)+'</p>' : '') +
       '<div class="reference"><span>本案焦點</span><strong>K. variicola · L02 BAL · 咳嗽</strong>' +
       '<span>FilmArray 只回報肺炎克雷伯氏菌群</span></div>' +
       '<div class="review-lanes"><section class="panel literature"><div class="panel-top"><h2>手上的文獻</h2><span>' +
@@ -239,7 +255,7 @@
       '<p class="hint">圈出可對照的檢體 · 左滑略過 · 右滑收入</p></article>' +
       '<div class="review-actions">' + button("← 略過", "classify", "skip") +
       button("收入案卷 →", "classify", "keep", {kind:"primary"}) + '</div></section>' +
-      '<aside class="panel folder"><div class="panel-top"><h2>案卷夾</h2><span>' + state.kept.length + ' 篇</span></div>' +
+      '<aside class="panel folder"><div class="panel-top"><h2>案卷夾</h2><span>' + (modes.isHard() ? state.paperDecisions.filter(d=>d?.decision==='keep').length : state.kept.length) + ' 篇</span></div>' +
       (state.kept.length ? '<ul>' + state.kept.map((item) => '<li><strong>文獻 ' + item.id +
         '</strong><span>' + html(item.note) + '</span></li>').join("") + '</ul>' : '<p class="hint">收入的摘要與限制會留在這裡。</p>') +
       '</aside></div>';
@@ -264,22 +280,34 @@
     if (state.view !== "debate" || state.debate.shotPending) return;
     if (!window.BreathDebateData.evaluate(state.debate,id)) return;
     if (debateControl && !debateControl.canAim(id)) return;
+    if (state.debate.phase !== "running") return;
     state.debate.shotPending = true;
     const resolve = () => {
       state.debate.shotPending = false;
       const result = window.BreathDebateData.shoot(state.debate,id);
       if (!result) return;
       play(result.ok ? "done" : "tick");
+      if (state.debate.difficulty === "hard" && state.debate.timeLeft <= 0) { timeoutDebate(); return; }
       render(false);
     };
     if (debateControl) debateControl.impact(id,resolve);
     else resolve();
   }
 
+  function timeoutDebate() {
+    if (state.view !== "debate" || state.debate.phase !== "running") return;
+    state.debate.timeLeft=0;state.debate.phase="failed";state.debate.feedback=null;state.debate.shotPending=false;
+    render(false);
+  }
+  function missDebate(kind) {
+    if (state.view !== "debate" || state.debate.phase !== "running" || state.debate.feedback) return;
+    window.BreathDebateData.penalize(state.debate,kind);
+    if (state.debate.timeLeft <= 0) timeoutDebate();
+  }
   function demoDebate() {
     reset();
     state.demo = true;
-    state.records = content.records.filter(record => ["L01","L02"].includes(record.id));
+    state.records = content.records.filter(content.fitWindow);
     state.filed = state.records.map(record => ({...record,scope:content.chooseScope(record)}));
     state.maze = window.BreathMazeRules.create();
     while (Object.keys(state.maze.results).length < 3) {
@@ -367,6 +395,7 @@
   const views = {title, travel, gather, maze, labyrinth, literature, debate, report, done};
 
   function render(focus) {
+    modes.prepare(state);
     labyrinthControl?.stop();
     labyrinthControl = null;
     debateControl?.stop();
@@ -421,7 +450,7 @@
       screen.querySelector(".labyrinth-message button")?.focus({preventScroll:true});
     }
     if (state.view === "debate") {
-      debateControl = window.BreathDebate.mount(screen,state.debate,fireDebate,selectDebateAmmo);
+      debateControl = window.BreathDebate.mount(screen,state.debate,fireDebate,selectDebateAmmo,{miss:missDebate,timeout:timeoutDebate});
       const messageButton = screen.querySelector(".debate-feedback button");
       if (messageButton) messageButton.focus({preventScroll:true});
     }
@@ -435,12 +464,12 @@
     const [recordId, key] = token.split(":");
     const record = getRecord(recordId);
     if (!record || !fields[slot]) return;
-    if (key !== slot) {
+    if (key !== slot && !(modes.isHard() && ((slot === "date" && ["received","reported"].includes(key)) || (slot === "result" && key === "partial")))) {
       toast("這格需要「" + fields[slot] + "」。你拿的是「" + fields[key] + "」。", "error");
       return;
     }
     const origin = documents.origin(record,key);
-    state.draft[slot] = {record, origin};
+    state.draft[slot] = {record, origin, key};
     state.token = "";
     state.slot = "";
     play("tick");
@@ -453,27 +482,28 @@
     const cells = Object.keys(fields).map((key) => state.draft[key]);
     if (cells.some((entry) => !entry))
       return toast("先填齊檢體編號、採檢時間、檢體類型和檢驗結果。","error");
-    if (cells.some((entry) => entry.record !== id.record))
+    if (!modes.isHard() && cells.some((entry) => entry.record !== id.record))
       return toast("有欄位來自不同檢體。請核對試算表的列和 PPT 報告編號。","error");
     const record = id.record;
-    if (!content.fitWindow(record))
+    if (!modes.isHard() && !content.fitWindow(record))
       return toast(record.id + " 採於 " + record.date + "，超出本關的 11/15–11/21 收件窗。", "error");
     if (state.records.includes(record))
       return toast(record.id + " 已收錄，請找另一份符合日期的紀錄。", "error");
+    state.gatherAudit[record.id] = {...state.draft};
     state.records.push(record);
     state.draft = {};
     state.token = "";
     state.slot = "";
     play("done");
     render(false);
-    toast("已收錄 " + record.id + "，並保留試算表與投影片的來源。", "success");
+    toast((modes.isHard() ? "已暫存 " : "已收錄 ") + record.id + "，並保留試算表與投影片的來源。", "success");
   }
 
   function mark(index) {
     const segment = currentPaper().segments[index];
     if (!segment) return;
-    if (segment.hint) return toast(segment.hint);
-    if (!segment.key) return;
+    if (!modes.isHard() && segment.hint) return toast(segment.hint);
+    if (!modes.isHard() && !segment.key) return;
     feedback.classList.remove("shown");
     state.marks = state.marks.includes(index) ? state.marks.filter((value) => value !== index) : [...state.marks, index];
     render(false);
@@ -481,6 +511,13 @@
 
   function classify(decision) {
     const paper = currentPaper();
+    if (!paper || !["keep","skip"].includes(decision)) return;
+    if (modes.isHard()) {
+      const editing=state.paperDecisions.filter(Boolean).length===content.literature.length;
+      modes.queuePaper(state,decision);
+      if(editing)state.paper=content.literature.length;
+      render(true);return;
+    }
     if (decision === "keep") {
       if (!paper.fit) return toast(paper.feedback, "error");
       if (!state.marks.some((index) => paper.segments[index].key === "site"))
@@ -512,9 +549,10 @@
   }
 
   function clearHint() {
-    if (state?.labyrinth) state.labyrinth.hintGoal = "";
+    if (state?.labyrinth && !modes.isEasy()) state.labyrinth.hintGoal = "";
   }
   function hintAssist(kind, goal) {
+    if (modes.isHard()) return;
     if (kind === "route" && state.view === "labyrinth" && !state.labyrinth.dialog && !state.labyrinth.complete) {
       const expected = !state.labyrinth.found.specimen ? "specimen" : !state.labyrinth.found.missing ? "missing" : "exit";
       if (goal !== expected) return;
@@ -539,6 +577,20 @@
   }
   const actions = {
     start: () => { go("intro"); play("phone"); },
+    difficulty: (id) => { if (state.view !== "title") return; modes.apply(id); state.difficulty=modes.id(); state.mazeMode=modes.id()==="normal" && mazeView==="maze"?"rules":"explore"; activity[1]=state.mazeMode==="rules"?"maze":"labyrinth"; render(false); },
+    "easy-import": (id) => {
+      if (!modes.isEasy() || state.view !== "gather") return;
+      const record=getRecord(id); if (!record || state.records.includes(record)) return;
+      state.draft=Object.fromEntries(Object.keys(fields).map(key=>[key,{record,key,origin:documents.origin(record,key)}]));
+      state.source="ppt";state.slide=id;state.token="";state.slot="";render(false);
+    },
+    "remove-record": (id) => { if (!modes.isHard() || state.view!=="gather") return; state.records=state.records.filter(r=>r.id!==id);delete state.gatherAudit[id];state.gatherErrors=[];render(false); },
+    "maze-answer": (value) => { if (state.view!=="labyrinth" || !modes.isHard()) return; window.BreathLabyrinthData.answer(state.labyrinth,Number(value));render(false); },
+    "paper-edit": (value) => { const n=Number(value);if(!modes.isHard()||state.view!=="literature"||state.paperGrade||!Number.isInteger(n)||!state.paperDecisions[n])return;state.paper=n;state.marks=[...state.paperDecisions[n].marks];render(true); },
+    "papers-submit": () => { if(!modes.isHard()||state.view!=="literature"||state.paperDecisions.filter(Boolean).length!==content.literature.length)return;modes.gradePapers(state);render(true); },
+    "papers-retry": () => { if(!modes.isHard()||state.view!=="literature")return;state.paper=0;state.marks=[];state.paperDecisions=[];state.paperGrade=null;state.kept=[];render(true); },
+    "papers-next": () => { if(modes.isHard()&&state.paperGrade?.passed)go("travel",3); },
+    "debate-retry-round": () => { if(state.view!=="debate"||state.debate.phase!=="failed")return;state.debate.phase="ready";state.debate.feedback=null;state.debate.selected="";state.debate.elapsed=0;state.debate.focus=false;state.debate.paused=false;state.debate.drawer=false;state.debate.shotPending=false;modes.debate(state.debate);render(true); },
     "demo-debate": demoDebate,
     "demo-maze": demoMaze,
     "labyrinth-landmark": (id) => labyrinthControl?.toLandmark(id),
@@ -580,6 +632,7 @@
     "debate-close": () => {state.debate.drawer=false;render(false);},
     "debate-next": () => {
       window.BreathDebateData.next(state.debate);
+      if (!state.debate.feedback && state.debate.phase === "ready") modes.debate(state.debate);
       render(true);
       screen.querySelector(".debate-board")?.scrollIntoView({block:"start"});
     },
@@ -632,6 +685,8 @@
     clear: () => { state.draft = {}; state.token = ""; state.slot = ""; render(false); },
     collect,
     "gather-next": () => {
+      if (modes.isHard() && !modes.checkGather(state)) { render(true); return; }
+      if (!modes.isHard() && state.records.length !== content.records.filter(content.fitWindow).length) return;
       state.records.sort((a,b) => a.date.localeCompare(b.date));
       go("travel", 1);
     },
