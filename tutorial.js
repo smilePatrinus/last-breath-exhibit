@@ -130,6 +130,7 @@
 
   function lesson() {
     if (!state) return null;
+    if (state.difficulty === "quick") return window.BreathQuick.guide(state,action,step);
     if (state.view === "travel") return step("travel-go",action("walk-goal"),"先走到這關的目的地",
       "你可以按這個按鈕，讓偵探走到櫃檯。也能用方向鍵、WASD 或點地圖移動；到站後會接上劇情和操作教學。");
     const lessons = {gather,maze,labyrinth,literature,debate,report};
@@ -221,7 +222,7 @@
     nextButton.textContent = next.next;
     if (changed || hintMode) {
       panel.querySelector("h2").textContent = next.title;
-      panel.querySelector(".tutorial-copy > p").textContent = next.body;
+      panel.querySelector(".tutorial-copy > p").innerHTML = window.BreathDialogue.render(next.body);
     }
     panel.querySelector('[data-coach="close"]').textContent = next.next && /換我|繼續調查|結束教學/.test(next.next) ?
       "關閉提示" : "略過教學";
@@ -253,7 +254,7 @@
     if (nextGroup !== group) {
       if (hintMode) assists.clear?.();
       hintMode = false;
-      active = supported && !visited.has(nextGroup);
+      active = supported && !visited.has(nextGroup) && !(state.difficulty==="quick" && nextGroup==="report");
       if (supported) visited.add(nextGroup);
       group = nextGroup;
     }

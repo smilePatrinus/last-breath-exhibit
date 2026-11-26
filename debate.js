@@ -10,7 +10,7 @@
       '<p>證據配錯 '+state.penalties.wrong+' 次 · 打歪 '+state.penalties.miss+' 次 · 遮擋 '+state.penalties.blocked+' 次</p>'+
       '<div class="actions">'+button("重試這段","debate-retry-round","",{kind:"primary"})+'</div></section>';
     if(state.phase==="complete") return '<section class="panel debate-complete"><p class="eyebrow">議論結束 · 四段推論已核對</p>'+
-      '<h2>讓證據能說到的地方，成為報告的界線。</h2><ol>'+state.results.map(item=>'<li><strong>'+
+      '<h2>'+(state.difficulty==="quick"?"核對完成":"讓證據能說到的地方，成為報告的界線。")+'</h2><ol>'+state.results.map(item=>'<li><strong>'+
       html(item.title)+'</strong><p>'+html(item.correction)+'</p></li>').join("")+'</ol><div class="actions">'+
       button("組成調查報告","debate-report","",{kind:"primary"})+'</div></section>';
     const round=data.current(state),selected=state.cards.find(item=>item.id===state.selected);
@@ -20,7 +20,7 @@
     let overlay="";
     if(ready) overlay='<section class="debate-ready"><p class="eyebrow">第 '+(state.index+1)+' 段 · '+mode+
       '</p><h2>'+html(round.title)+'</h2><p>'+html(round.mission)+'</p><p class="hint">'+
-      (selected?'已裝填「'+html(selected.short)+'」。議論開始後仍能切換。':"先從下方選一枚言彈。點「查看證據」可讀原始資料。")+
+      (state.difficulty==="quick"?"已裝填。瞄準標記片語。":selected?'已裝填「'+html(selected.short)+'」。議論開始後仍能切換。':"先從下方選一枚言彈。點「查看證據」可讀原始資料。")+
       '</p>'+button("開始議論","debate-start","",{kind:"primary",attrs:selected?"":" disabled"})+'</section>';
     if(state.drawer && selected) overlay='<section class="debate-drawer" role="region" aria-label="言彈原始資料">'+
       '<div class="panel-top"><h2>'+html(selected.title)+'</h2>'+button("回到議論","debate-close","",{kind:"quiet small"})+
@@ -31,10 +31,10 @@
       overlay='<section class="debate-feedback '+(feedback.ok?"success "+round.mode:"retry")+
         '" role="alertdialog" aria-modal="true" aria-labelledby="debate-feedback-title">'+
         '<div class="debate-cut-in" aria-hidden="true"></div><p class="eyebrow">'+(feedback.ok?"偵探 · 提出證據":"偵探 · 心想")+
-        '</p><h2 id="debate-feedback-title">'+html(feedback.title)+'</h2><p>'+html(feedback.body)+'</p>'+
+        '</p><h2 id="debate-feedback-title">'+html(feedback.title)+'</h2><p>'+window.BreathDialogue.render(feedback.body)+'</p>'+
         (feedback.ok?'<div class="debate-hit-pair"><span>言彈 · '+html(card.title)+'</span><span>命中 · '+html(feedback.target)+
-          '</span></div><blockquote>'+html(feedback.correction)+'</blockquote><p class="debate-doctor"><b>醫師</b>「'+
-          html(feedback.doctor)+'」</p>':"")+
+          '</span></div><blockquote>'+window.BreathDialogue.render(feedback.correction)+'</blockquote><p class="debate-doctor"><b>醫師</b>「'+
+          window.BreathDialogue.render(feedback.doctor)+'」</p>':"")+
         '<div class="actions">'+button(feedback.ok?(state.index===state.rounds.length-1?"收起議論紀錄":"接續下一段議論"):"再聽一次",
           "debate-next","",{kind:"primary"})+'</div></section>';
     }
@@ -68,7 +68,7 @@
             (ready||state.feedback||state.drawer?' disabled':"")})+
           button(state.difficulty==="hard"?"困難不暫停":"暫停","debate-pause","",{kind:"quiet small",attrs:state.difficulty==="hard"||ready||state.feedback||state.drawer?' disabled':""})+
           button("重聽本段","debate-replay","",{kind:"quiet small",attrs:ready||state.feedback||state.drawer?' disabled':""})+
-        '</div></div><p class="debate-key-hint">點言彈切換，再點流動片語發射。鍵盤可用 Q／E 切換、按住空白集中、Enter 發射。</p>'+
+        '</div></div><p class="debate-key-hint">'+(state.difficulty==="quick"?"點片語發射；集中可放慢。":"點言彈切換，再點流動片語發射。鍵盤可用 Q／E 切換、按住空白集中、Enter 發射。")+'</p>'+
         '<p class="debate-live-note" role="status" aria-live="polite"></p></div></section>';
   }
 

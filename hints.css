@@ -1,11 +1,11 @@
 .quick-hint {
   position: fixed; right: max(12px,env(safe-area-inset-right)); bottom: max(12px,env(safe-area-inset-bottom));
-  z-index: 44; min-height: 48px; padding: 11px 18px; border: 2px solid #fff0b5;
-  border-radius: 9px; color: #1e271f; background: #f4ca75; font-weight: 800; font-size: 1rem;
-  box-shadow: 0 4px 20px #050d19a3,0 0 0 3px #533d2355;
+  z-index: 44; min-height: 48px; padding: 11px 18px; border: 1px solid #6f837b;
+  border-radius: 9px; color: #d5ded5; background: #23363d; font-weight: 800; font-size: 1rem;
+  box-shadow: 0 3px 10px #050d1955;
 }
-.quick-hint:hover,.quick-hint:focus-visible { background: #ffe3a0 }
-.quick-hint[aria-expanded="true"] { background: #e6eddb; border-color: #b9d9c0 }
+.quick-hint:hover,.quick-hint:focus-visible { background: #30464d; color: #f0eee0 }
+.quick-hint[aria-expanded="true"] { background: #2b4147; border-color: #91a89c }
 .tutorial-panel { bottom: max(76px,calc(env(safe-area-inset-bottom) + 72px)) }
 .tutorial-panel[data-mode="hint"] { border: 2px solid #f4ca75; background: #152d39; width: min(420px,calc(100% - 24px)); }
 .tutorial-panel[data-mode="hint"] .tutorial-label { color: #ffe3a0; font-weight: 800 }

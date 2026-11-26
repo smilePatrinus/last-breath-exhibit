@@ -100,7 +100,7 @@
   const art = (scene) => '<div class="scene-art ' + scene + '" aria-hidden="true"></div>';
   const heading = (name, description) =>
     '<header class="work-heading" data-station="' + state.chapter + '">' + art(content.chapter[state.chapter].scene) + '<div><p class="eyebrow">' + content.chapter[state.chapter].place + ' · '+modes.label()+'模式</p>' +
-    '<h1 tabindex="-1" data-focus>' + name + '</h1><p>' + description + '</p></div>' +
+    '<h1 tabindex="-1" data-focus>' + name + '</h1><p>' + modes.describe(state,description) + '</p></div>' +
     '<span class="chapter-number">' + content.chapter[state.chapter].num + '<span> / 04</span></span></header>' + guide();
 
   function title() {
@@ -127,8 +127,8 @@
 
   function guide() {
     const chapter = plot.chapter(state);
-    return '<details class="work-guide"><summary>' + (modes.isHard() ? "任務說明 · 操作規則" : "醫師留言 · 任務提示") + '</summary><p>' +
-      html(chapter.objective + chapter.task) + '</p></details>';
+    return '<details class="work-guide"><summary>' + (modes.isQuick() ? "本關任務" : modes.isHard() ? "任務說明 · 操作規則" : "醫師留言 · 任務提示") + '</summary><p>' +
+      window.BreathDialogue.render(chapter.objective + chapter.task) + '</p></details>';
   }
 
   function sourceToken(record, key) {
@@ -156,7 +156,7 @@
       result:"從 PPT 翻到同一個檢體編號，把檢驗結果帶入。"
     };
     const nextField = Object.keys(fields).find((key) => !state.draft[key]);
-    const guideText = modes.isHard() ? "先暫存要保留的檢體，最後核對整份收件清單；可移除後重新整理。" : state.records.length === expectedCount ? "兩張卡完成了。帶著原始紀錄進入判讀迷宮，沿不同菌種的規則找線索。" :
+    const guideText = modes.isQuick() ? (state.records.length===2?"兩份完成，前往迷宮。":Object.keys(state.draft).length===4?"核對編號後按「收錄」。":"點上方檢體卡帶入資料。") : modes.isHard() ? "先暫存要保留的檢體，最後核對整份收件清單；可移除後重新整理。" : state.records.length === expectedCount ? "兩張卡完成了。帶著原始紀錄進入判讀迷宮，沿不同菌種的規則找線索。" :
       (prompts[nextField] || "核對欄位都來自同一份檢體，再把紀錄收進案卷。");
     const slots = Object.entries(fields).map(([key, title]) => {
       const value = state.draft[key];
@@ -205,6 +205,7 @@
       if (state.labyrinth.complete) state.maze.results.B = state.labyrinth.result;
       play(state.labyrinth.complete ? "done" : "tick");
       render(false);
+      if (modes.isQuick()) screen.querySelector(".labyrinth-message")?.scrollIntoView({block:"center"});
     }
   }
 
@@ -360,18 +361,22 @@
       state.debate.results.map(item => '<li><strong>' + html(item.title) + '</strong><p>' + html(item.correction) +
         '</p><small>依據：' + html(state.debate.cards.find(card => card.id === item.evidence)?.title || item.evidence) + '</small></li>').join("") +
       '</ol></details>' : "";
+    const items = content.candidateRoutes(state.filed,state.kept,state.maze?.results);
+    const cards = '<div class="report-grid">'+items.map(reportCard).join("")+'</div>';
+    const reportBody = modes.isQuick() ? window.BreathQuick.reportSummary(items,html)+
+      '<details class="panel quick-full-report"><summary>完整案卷與來源</summary>'+debateLog+cards+'</details>' : debateLog+cards;
     return heading(state.submitted ? "調查報告" : "交回調查報告", "原始來源、候選判讀路徑與議論核對結果，放進同一份案卷。") +
       (state.demo ? '<p class="reference">第四關試玩 · 使用預先整理的模擬案卷。</p>' :
         state.demoMaze ? '<p class="reference">第二關試玩 · 使用預先整理的第一關資料。</p>' : "") +
-      '<p class="reference report-reply">已完成四段證據核對。保留成立的支持，也留下物種與致病角色仍待確認的地方。</p>' +
-      debateLog + '<div class="report-grid">' + content.candidateRoutes(state.filed, state.kept, state.maze?.results).map(reportCard).join("") + '</div>' +
-      '<div class="report-footer"><p>報告會附上原單、保留的文獻與尚待確認的線索。</p>' +
+      '<p class="reference report-reply">'+(modes.isQuick()?"核對完成，保留尚待確認。":"已完成四段證據核對。保留成立的支持，也留下物種與致病角色仍待確認的地方。")+'</p>' +
+      reportBody +
+      '<div class="report-footer"><p>'+(modes.isQuick()?"核對後送出。":"報告會附上原單、保留的文獻與尚待確認的線索。")+'</p>' +
       button(state.submitted ? "返回結案畫面" : "送出調查報告", state.submitted ? "back-done" : "submit", "", {kind:"primary",attrs:state.debate?.phase === "complete" ? "" : " disabled"}) +
       '</div>';
   }
 
   function done() {
-    const project = [
+    const project = modes.isQuick() ? [["整理資料","對齊病人、檢體與採檢時間。"],["規則判讀","整合 mNGS 與院端證據。"],["查閱文獻","保留可參考內容與限制。"],["交付結果","附來源，保留待確認。"]] : [
       ["整理原始資料","以兩院資料為例，從試算表和簡報擷取欄位，按病人與採檢紀錄對齊。高醫則有自己的前端資料處理流程。"],
       ["按菌種規則分流判讀","將 mNGS 訊號、院端支持與檢體脈絡接起來。不同菌種核對不同條件，未提供的資料保留未知。"],
       ["複核仍有疑問的候選","視需要查文獻作背景，並把檢出、可參考的證據與它的限制放在一起。"],
@@ -383,9 +388,9 @@
       '<h1 tabindex="-1" data-focus><span>最後一口</span><br><em>呼吸</em></h1>' +
       '<div class="closing-copy"><p>你整理了 ' + state.records.length + ' 份採檢紀錄，完成 ' + Object.keys(state.maze.results).length +
       ' 條候選判讀路徑，並保留 ' + state.kept.length + ' 篇可供對照的文獻。</p>' +
-      '<p>把檢驗單對回採檢紀錄，就能分清痰液的培養和 BAL 的 mNGS 各自支持到哪裡。</p></div>' +
+      '<p>'+window.BreathDialogue.render(modes.isQuick()?"檢出不等於致病；證據不足，保留未知。":"把檢驗單對回採檢紀錄，就能分清痰液的培養和 BAL 的 mNGS 各自支持到哪裡。")+'</p></div>' +
       '<div class="actions">' + button("查看調查報告", "see-report", "", {kind:"primary"}) + button("再玩一次", "replay") +
-      '</div></div></section><details class="panel project-note" open><summary>剛才玩的四步，對應到我們的專題</summary><ol>' +
+      '</div></div></section><details class="panel project-note"'+(modes.isQuick()?'':' open')+'><summary>剛才玩的四步，對應到我們的專題</summary><ol>' +
       project.map(([title,description]) => '<li><strong>' + title + '</strong><p>' + description + '</p></li>').join("") +
       '</ol></details><details class="panel project-note"><summary>展示病例的資料參考</summary>' +
       '<ul class="citations">' + Object.values(content.bibliography).map((item) => '<li>' + sourceLink(item) + '</li>').join("") +

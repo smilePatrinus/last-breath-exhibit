@@ -3,8 +3,9 @@
   const content=window.BreathContent;
   const copy=value=>JSON.parse(JSON.stringify(value));
   const originals={records:copy(content.records),papers:copy(content.literature),fit:content.fitWindow,
-    interval:content.caseInfo.interval,maze:{...window.BreathLabyrinthData},chapter:window.BreathStory.chapter};
-  const labels={easy:"簡單",normal:"普通",hard:"困難"};
+    interval:content.caseInfo.interval,maze:{...window.BreathLabyrinthData},chapter:window.BreathStory.chapter,intro:window.BreathStory.intro,ending:window.BreathStory.ending};
+  const labels={quick:"快速",easy:"簡單",normal:"普通",hard:"困難"};
+  const guided=()=>selected==="easy"||selected==="quick";
   let selected=new URLSearchParams(location.search).get("difficulty")||"normal";
   if(!labels[selected])selected="normal";
   const reference=Date.parse("2026-11-18T09:12:00Z");
@@ -51,25 +52,30 @@
   }
   function apply(id=selected) {
     selected=labels[id]?id:"normal";
-    const records=selected==="hard"?hardRecords():selected==="easy"?copy(originals.records.filter(r=>r.id!=="L00")):copy(originals.records);
+    const records=selected==="hard"?hardRecords():guided()?copy(originals.records.filter(r=>r.id!=="L00")):copy(originals.records);
     const papers=selected==="hard"?[...copy(originals.papers),...extraPapers()]:
+      selected==="quick"?window.BreathQuick.papers(copy(originals.papers)):
       selected==="easy"?copy(originals.papers.filter(p=>["01","02","04"].includes(p.id))):copy(originals.papers);
     content.records.splice(0,content.records.length,...records);
     content.literature.splice(0,content.literature.length,...papers);
     content.fitWindow=selected==="hard"?hardFit:originals.fit;
     content.caseInfo.interval=selected==="hard"?"11/15 09:12–11/21 09:12（含端點）":originals.interval;
     Object.assign(window.BreathLabyrinthData,originals.maze);
-    if(selected!=="normal")Object.assign(window.BreathLabyrinthData,window.BreathModeMaze[selected](originals.maze));
+    if(selected!=="normal")Object.assign(window.BreathLabyrinthData,window.BreathModeMaze[selected==="quick"?"easy":selected](originals.maze));
+    window.BreathStory.intro=selected==="quick"?window.BreathQuick.intro:originals.intro;
+    window.BreathStory.ending=selected==="quick"?window.BreathQuick.ending:originals.ending;
+    if(selected==="quick")window.BreathLabyrinthData.task=state=>!state.found.specimen?"下一站：培養紀錄。":!state.found.missing?"下一站：其他證據。":"前往「保留脈絡」出口。";
     document.body.dataset.difficulty=selected;
   }
   function cards(button) {
     return '<fieldset class="difficulty-picker"><legend>選擇調查模式</legend><div>'+
-      [["easy","快速導覽","快速帶入資料、小迷宮引導、3 篇文獻、每段 1 枚言彈。"],
+      [["quick","重點體驗","短對話、精簡線索與摘要，保留四關操作。"],
+       ["easy","引導體驗","快速帶入資料、小迷宮引導、3 篇文獻、每段 1 枚言彈。"],
        ["normal","目前的完整玩法","維持原來四關，保留教學、直接提示與集中模式。"],
        ["hard","完整挑戰","10 份檢體、63×43 大迷宮、12 篇批次判讀、限時障礙言彈；無提示。"]].map(([id,tag,desc])=>
        button('<strong>'+labels[id]+'</strong><span>'+tag+'</span><small>'+desc+'</small>',"difficulty",id,
          {kind:"difficulty-card"+(selected===id?" selected":""),attrs:' aria-pressed="'+(selected===id)+'"'})).join("")+'</div><p class="difficulty-description">'+
-      (selected==="easy"?"快速帶入兩份資料，小迷宮有引導；文獻減為三篇，每段言彈只有一枚。":
+      (selected==="quick"?"縮短對話、線索與說明，保留四關操作、來源與判讀限制。":selected==="easy"?"快速帶入兩份資料，小迷宮有引導；文獻減為三篇，每段言彈只有一枚。":
        selected==="normal"?"維持目前的四關玩法，保留操作教學、直接提示、暫停與集中。":
        "十份檢體、63×43 大迷宮、十二篇整批判讀；無提示，言彈每段限時七十五秒。")+'</p></fieldset>';
   }
@@ -78,20 +84,22 @@
     state.paperDecisions=[];state.paperGrade=null;
   }
   function prepare(state) {
-    if(selected==="easy" && state.view==="literature" && content.literature[state.paper]?.fit) {
+    if(selected==="quick")window.BreathQuick.prepare(state);
+    if(guided() && state.view==="literature" && content.literature[state.paper]?.fit) {
       const site=content.literature[state.paper].segments.findIndex(s=>s.key==="site");
       if(!state.marks.includes(site))state.marks.push(site);
     }
-    if(selected==="easy" && state.view==="labyrinth" && !state.labyrinth.complete && !state.labyrinth.dialog)
+    if(guided() && state.view==="labyrinth" && !state.labyrinth.complete && !state.labyrinth.dialog)
       state.labyrinth.hintGoal=!state.labyrinth.found.specimen?"specimen":!state.labyrinth.found.missing?"missing":"exit";
   }
   function debate(session) {
     session.difficulty=selected;
-    if(selected==="easy") {
+    if(guided()) {
       session.rounds.forEach(r=>{r.ammo=[r.correct.bullet];r.lines=r.lines.filter((line,index)=>index===0||line.id===r.correct.line);});
       session.selected=session.rounds[session.index]?.correct.bullet||"";
       session.motion="full";session.lineDuration=5200;
     }
+    if(selected==="quick")window.BreathQuick.debate(session);
     if(selected==="hard") {
       session.lineDuration=3600;session.timeLimit=75000;session.timeLeft=75000;session.timerStamp=null;
       session.penalties={wrong:0,miss:0,blocked:0};session.penaltyNote="";
@@ -99,6 +107,9 @@
   }
   function gatherAssist(state,button,html) {
     if(selected==="normal")return "";
+    if(selected==="quick")return '<section class="panel easy-import"><h2>選一份檢體</h2><p>帶入四格 → 核對 → 收錄</p><div>'+
+      content.records.map(r=>button(html(r.id+" · "+r.sampleCode+" · "+r.date),"easy-import",r.id,
+        {attrs:state.records.some(x=>x.id===r.id)?" disabled":""})).join("")+'</div></section>';
     if(selected==="easy")return '<section class="panel easy-import"><h2>先選一份檢體，快速整理</h2><p>按下後帶入四格，仍需核對 PPT 並按「收錄」。</p><div>'+
       content.records.map(r=>button(html(r.id+" · "+r.type+" · "+r.dateTime),"easy-import",r.id,
         {attrs:state.records.some(x=>x.id===r.id)?" disabled":""})).join("")+'</div></section>';
@@ -150,6 +161,7 @@
   function chapter(state,index=state.chapter) {
     const value=originals.chapter(state,index);
     if(selected==="normal" || !value)return value;
+    if(selected==="quick")return window.BreathQuick.chapter(value,index);
     const hard=selected==="hard",texts=[
       hard?"這次有十份檢體。以 11/18 09:12 前後 72 小時為窗，包含端點；按採檢時間選出所有符合的資料，收件日和核發日不能替代。":"這次先整理兩份資料。可以用快速帶入，核對來源後收錄，認識資料怎麼接起來。",
       hard?"三區迷宮的角落藏著六把線索鑰匙。先離開主路尋找，讀過後收進鑰匙包，再回到對應的大門使用。撿到鑰匙不會直接開門。":"先穿過入口走廊，再到兩間紀錄室核對線索，最後繞過轉角走到出口。金色路線會引導你，途中可以走小岔路看看。",
@@ -160,5 +172,6 @@
   }
   window.BreathStory.chapter=chapter;
   window.BreathModes={apply,cards,init,prepare,debate,gatherAssist,checkGather,queuePaper,gradePapers,paperReview,
-    id:()=>selected,label:()=>labels[selected],isHard:()=>selected==="hard",isEasy:()=>selected==="easy"};
+    id:()=>selected,label:()=>labels[selected],isHard:()=>selected==="hard",isEasy:guided,isQuick:()=>selected==="quick",
+    describe:(state,fallback)=>selected==="quick"?(window.BreathQuick.objectives[state.chapter]||fallback):fallback};
 })();

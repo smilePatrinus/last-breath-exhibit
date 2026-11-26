@@ -22,11 +22,11 @@
   }
   function render(state,button,html) {
     if(state.complete && !state.dialog) return '<section class="panel labyrinth-finish"><p class="eyebrow">白色念珠菌 · 本輪探索完成</p>'+
-      '<h2>找到了出口，也留下了證據的界線。</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
-      '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。</p>'+
+      '<h2>'+(state.difficulty==="quick"?"探索完成":"找到了出口，也留下了證據的界線。")+'</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
+      '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>'+(state.difficulty==="quick"?"本輪僅探索念珠菌，接著查文獻。":"這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。")+'</p>'+
       (state.difficulty==="hard"?'<p class="key-completion">線索鑰匙 '+(state.keys?.length||0)+' / 6 · 已解鎖 '+state.quizAnswers.length+' / 6 道大門</p>':"")+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=20&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=21&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -49,8 +49,8 @@
       const clue=state.dialog;
       dialog='<section class="labyrinth-message '+html(clue.kind||"")+
         '" role="alertdialog" aria-modal="true" aria-labelledby="labyrinth-message-title"><div class="labyrinth-face" aria-hidden="true"></div>'+
-        '<p class="eyebrow">'+html(clue.voice)+'</p><h2 id="labyrinth-message-title">'+html(clue.title)+'</h2><p>'+html(clue.copy)+
-        '</p><div class="labyrinth-paper">'+html(clue.fact)+'</div>'+
+        '<p class="eyebrow">'+html(clue.voice)+'</p><h2 id="labyrinth-message-title">'+html(clue.title)+'</h2><p>'+window.BreathDialogue.render(clue.copy,clue.emphasis)+
+        '</p><div class="labyrinth-paper">'+window.BreathDialogue.render(clue.fact)+'</div>'+
         (clue.source?'<small class="labyrinth-source">'+html(clue.source)+'</small>':"")+
         (clue.reward?'<p class="labyrinth-reward">'+html(clue.reward)+'</p>':"")+
         (clue.quizId ? '<div class="maze-quiz-options">'+clue.options.map((option,index)=>button(html(option),"maze-answer",String(index),{kind:"quiet"})).join("")+'</div>'+
@@ -63,11 +63,11 @@
       attrs:' style="left:'+(item.x+.5)*size+'px;top:'+(item.y*size-15)+'px;" aria-label="走向'+html(item.label)+'"'+
         (!data.inSight(state.position,item,2.25)?' hidden':"")+(state.dialog||!data.inSight(state.position,item,2.25)?' disabled':"")
     })).join("");
-    return '<section class="labyrinth-mission"><div><p class="eyebrow">本次探路 · 白色念珠菌</p><h2>沿證據，找到能走的出口。</h2><p>'+
+    return '<section class="labyrinth-mission"><div><p class="eyebrow">本次探路 · 白色念珠菌</p><h2>'+(window.BreathModes?.isQuick()?"沿線索走到出口":"沿證據，找到能走的出口。")+'</h2><p>'+
       html(data.task(state))+'</p></div><span class="labyrinth-companion">同行候選<br><b>Candida albicans</b></span></section>'+
       '<div class="labyrinth-layout"><section class="labyrinth-board"><div class="labyrinth-viewport" tabindex="0" aria-label="自由探索迷宮，方向鍵或 WASD 移動">'+
       '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div><div class="labyrinth-fog" aria-hidden="true"></div></div>'+
-      '<div class="labyrinth-controls"><p>在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small></p>'+
+      '<div class="labyrinth-controls"><p>'+(window.BreathModes?.isQuick()?"方向鍵／WASD／方向鈕移動，沿金線走。":"在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small>")+'</p>'+
       '<div class="dpad">'+[["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([id,label,name])=>
         button(label,"labyrinth-move",id,{attrs:' aria-label="向'+name+'移動"'+(state.dialog?' disabled':"")})).join("")+
       '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+keyBag+journal+
@@ -157,6 +157,7 @@
       if(mini)mini.setAttribute("d",path);
       const note=root.querySelector(".labyrinth-hint-status");
       if(note)note.hidden=hintPath.length<2;
+      if(note && state.difficulty==="quick")note.textContent="金線＝下一站路徑。";
       if(hintPath.length<2)return;
       ctx.save();ctx.strokeStyle="#ffe385";ctx.lineWidth=4;ctx.setLineDash([7,5]);
       ctx.lineDashOffset=-performance.now()/100;

@@ -68,9 +68,10 @@
     prop.hidden = !line.prop && !line.report && !line.lesson;
     prop.setAttribute("aria-hidden",line.lesson ? "false" : "true");
     root.querySelector(".story-speaker").textContent = roles[line.role];
-    root.querySelector(".story-line").textContent = line.body.replace("{summary}",state.kept.length ?
+    const spoken = line.body.replace("{summary}",state.kept.length ?
       "我留下了 " + state.kept.length + " 篇和本案可對照的文獻，限制也一起寫進去了。" :
       "這一輪的案卷沒有留文獻。關於 K. variicola，我只能交回院端的群組線索。");
+    root.querySelector(".story-line").innerHTML = window.BreathDialogue.render(spoken,line.emphasis);
     root.querySelector(".scene-actions").innerHTML =
       '<span class="beat-count">' + (state.beat+1) + ' / ' + current.length + '</span>' +
       (mode === "intro" && state.beat > 0 ? button("上一句", "rewind-intro", "", {kind:"quiet small"}) : "") +

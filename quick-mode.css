@@ -1,0 +1,28 @@
+.dialogue-key { font-weight: 850; color: #f7d9a3 }
+.labyrinth-paper .dialogue-key { color: #244c43; font-weight: 900 }
+.difficulty-picker > div { grid-template-columns: repeat(4,minmax(0,1fr)) }
+.quick-results { margin: 12px 0 }
+.quick-results ul { list-style: none; padding: 0; margin-top: 10px }
+.quick-results li { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 13px 0; border-top: 1px solid #4b655f }
+.quick-results li p { grid-column: 1 / -1; color: #c8d7ce; font-size: .94rem }
+.quick-full-report { margin: 14px 0 }
+.quick-full-report > summary { cursor: pointer; color: #d8cfb0; font-weight: 700 }
+.quick-full-report .report-grid { margin-top: 14px }
+body[data-difficulty="quick"] #raw-source > .hint { display: none }
+body[data-difficulty="quick"] .lesson-footnote,
+body[data-difficulty="quick"] .lesson-flow small,
+body[data-difficulty="quick"] .lesson-possibility small,
+body[data-difficulty="quick"] .lesson-note p,
+body[data-difficulty="quick"] .lesson-heading > p:last-child { display: none }
+body[data-difficulty="quick"] .lesson-note { min-height: 0 }
+body[data-difficulty="quick"] .lesson-board { padding-bottom: 16px }
+body[data-difficulty="quick"] .work-heading > div > p:last-child { line-height: 1.5 }
+body[data-difficulty="quick"] .report-footer { margin-top: 14px }
+@media (max-width:900px) {
+  .difficulty-picker > div { grid-template-columns: repeat(2,minmax(0,1fr)) }
+}
+@media (max-width:620px) {
+  .difficulty-card { min-height: 74px }
+  .quick-results li { gap: 5px 8px }
+  .quick-results li p { font-size: .9rem }
+}
