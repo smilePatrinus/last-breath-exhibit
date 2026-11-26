@@ -34,6 +34,13 @@
   }
   function labyrinth(state) {
     const session=state.labyrinth;
+    if(session.cupGame){
+      const phase=session.cupGame.phase;
+      if(phase==="won")return step("cup-claim",action("key-claim"),"收下真鑰匙","按「收下鑰匙，查看線索」，再核對原始紀錄。");
+      if(phase==="rescue")return step("cup-rescue",".cup-actions","還有一次換選機會","已排除另一把假鑰匙。你可以換到剩下那杯，或維持原選擇。");
+      if(phase==="failed")return step("cup-retry",action("key-retry"),"再跟一次紙杯","按「再洗一次」。已收集的線索與開門進度會保留。");
+      return step("cup-watch",".cup-stage","盯緊金色真鑰匙","先看真鑰匙被哪杯蓋住；換位約 2.4 秒後，點你追蹤的紙杯。");
+    }
     if(session.dialog)return step("labyrinth-dialog",action("labyrinth-close"),"先收好眼前的這條線索",
       session.dialog.title+"。讀完後按「"+(session.complete?"收起探索紀錄":"繼續探索")+"」，提示會接著告訴你下一站。");
     if(session.complete)return step("labyrinth-done",action("review-next"),"探索完成，前往文獻室",

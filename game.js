@@ -15,7 +15,7 @@
   const fields = { id: "檢體編號", date: "採檢時間", type: "檢體類型", result: "檢驗結果" };
   const seals = { same: "同檢體證據", other: "其他檢體參考" };
   let state, drag, swipe, ignoreClickUntil = 0, resetToast, audio;
-  let muted = false, mapControl, mazeControl, debateControl, labyrinthControl;
+  let muted = false, mapControl, mazeControl, debateControl, labyrinthControl, cupControl;
   const mazeView = new URLSearchParams(location.search).get("maze") === "rules" ? "maze" : "labyrinth";
   const activity = ["gather",mazeView,"literature","debate"];
   const sceneViews = ["intro","brief","ending"];
@@ -200,6 +200,12 @@
   }
 
   function visitLabyrinth(id) {
+    if (window.BreathKeyShuffle.intercept(state.labyrinth,id)) {
+      play("tick");
+      render(false);
+      screen.querySelector(".key-shuffle")?.scrollIntoView({block:"center"});
+      return;
+    }
     if (window.BreathLabyrinthData.visit(state.labyrinth,id,state.records)) {
       state.labyrinth.hintGoal = "";
       if (state.labyrinth.complete) state.maze.results.B = state.labyrinth.result;
@@ -401,6 +407,8 @@
 
   function render(focus) {
     modes.prepare(state);
+    cupControl?.stop();
+    cupControl = null;
     labyrinthControl?.stop();
     labyrinthControl = null;
     debateControl?.stop();
@@ -452,7 +460,10 @@
     }
     if (state.view === "labyrinth") {
       labyrinthControl = window.BreathLabyrinth.mount(screen,state.labyrinth,visitLabyrinth,(message)=>toast(message));
-      screen.querySelector(".labyrinth-message button")?.focus({preventScroll:true});
+      const messageFocus=state.labyrinth.cupGame && ["preview","shuffling"].includes(state.labyrinth.cupGame.phase)?
+        screen.querySelector(".key-shuffle h2"):screen.querySelector(".labyrinth-message button:not(:disabled)");
+      messageFocus?.focus({preventScroll:true});
+      if (state.labyrinth.cupGame) cupControl = window.BreathKeyShuffle.mount(screen,state.labyrinth.cupGame);
     }
     if (state.view === "debate") {
       debateControl = window.BreathDebate.mount(screen,state.debate,fireDebate,selectDebateAmmo,{miss:missDebate,timeout:timeoutDebate});
@@ -599,7 +610,38 @@
     "demo-debate": demoDebate,
     "demo-maze": demoMaze,
     "labyrinth-landmark": (id) => labyrinthControl?.toLandmark(id),
+    "key-cup": (value) => {
+      if(state.view!=="labyrinth" || !state.labyrinth.cupGame)return;
+      const game=state.labyrinth.cupGame;
+      if(window.BreathKeyShuffle.choose(game,Number(value))){
+        play(game.phase==="won"?"done":"tick");render(false);
+      }
+    },
+    "key-switch": (value) => {
+      if(state.view!=="labyrinth" || !state.labyrinth.cupGame)return;
+      const game=state.labyrinth.cupGame;
+      if(window.BreathKeyShuffle.resolve(game,value)){
+        play(game.phase==="won"?"done":"tick");render(false);
+      }
+    },
+    "key-retry": () => {
+      if(state.view!=="labyrinth" || state.labyrinth.cupGame?.phase!=="failed")return;
+      const game=state.labyrinth.cupGame;
+      state.labyrinth.cupGame=window.BreathKeyShuffle.create(game.difficulty,game.landmark,game.title,Math.random,game.attempt+1);
+      render(false);
+    },
+    "key-claim": () => {
+      if(state.view!=="labyrinth")return;
+      const id=window.BreathKeyShuffle.claim(state.labyrinth);
+      if(id)visitLabyrinth(id);
+    },
+    "key-leave": () => {
+      if(state.view!=="labyrinth" || !state.labyrinth.cupGame || state.labyrinth.cupGame.phase==="won")return;
+      state.labyrinth.cupGame=null;state.labyrinth.dialog=null;
+      render(false);screen.querySelector(".labyrinth-viewport")?.focus({preventScroll:true});
+    },
     "labyrinth-close": () => {
+      if(state.labyrinth.cupGame)return;
       state.labyrinth.dialog=null;
       render(false);
       screen.querySelector(".labyrinth-viewport")?.focus({preventScroll:true});
@@ -751,7 +793,10 @@
     if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || dialog.open) return;
     if (state.view === "labyrinth" && state.labyrinth.dialog && event.key === "Tab") {
       event.preventDefault();
-      screen.querySelector(".labyrinth-message button")?.focus();
+      const controls=[...screen.querySelectorAll('.labyrinth-message button:not(:disabled),.labyrinth-message a[href]')];
+      const current=controls.indexOf(document.activeElement);
+      const next=current<0?(event.shiftKey?controls.length-1:0):(current+(event.shiftKey?-1:1)+controls.length)%controls.length;
+      controls[next]?.focus({preventScroll:true});
       return;
     }
     if (state.view === "debate" && state.debate.feedback && event.key === "Tab") {

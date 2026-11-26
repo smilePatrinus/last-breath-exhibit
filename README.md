@@ -8,10 +8,10 @@
 
 開始畫面可選快速、簡單、普通、困難；預設普通。重新開始保留這次選的模式，回到標題後可再換。快速試玩也沿用選定模式。分享時可使用：
 
-- [快速模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=quick)
-- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=easy)
-- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=normal)
-- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=hard)
+- [快速模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=quick)
+- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=easy)
+- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=normal)
+- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=hard)
 
 | 關卡 | 簡單 | 普通 | 困難 |
 | --- | --- | --- | --- |
@@ -56,6 +56,16 @@
 簡單版使用 29×23 的房間與走廊地圖：從入口廣場走到左側紀錄室，經過中央庭院與上方證據室，最後繞過出口區的彎道。包含小迴圈和可回頭的短岔路，線索與出口分開配置，不再只走一條短通道。
 
 角色需自行移動到紀錄與出口，金色路線只指路。保留方向鍵、WASD、手機虛擬搖桿與點亮處石板路的移動方式；兩道證據門仍需依序核對來源才能通過。
+
+## 紙杯換位與真鑰匙
+
+四種模式的迷宮加入三杯換位機關：先看一把金色真鑰匙、兩把灰色假鑰匙，紙杯蓋上後連換十次，共 2.4 秒，再選一杯。快速、簡單及普通在兩處原始紀錄櫃拿開櫃鑰匙；困難則在既有六把線索鑰匙的位置觸發，不改地形或鑰匙配置。
+
+快速／簡單第一次選錯時，會揭開另一杯的假鑰匙，再讓玩家維持或換選；第一次選對則直接成功。這是條件式的三門救援，並非標準三門機率實驗，遊戲不宣稱換選有 2/3 勝率。普通／困難選錯可以重新洗牌，不扣除背包中的線索或已開啟的大門。還沒收下鑰匙前不會入袋、解鎖或產生臨床證據。
+
+成功後按「收下鑰匙，查看線索」，才進入原有紀錄或鑰匙說明；已完成的機關重讀時不再洗牌。困難仍需拿鑰匙回對應大門回答原有問題，開櫃小遊戲不替代證據核對。可先離開再回來；重試、切換關卡與重開遊戲會清理動畫，背景分頁及重新開始確認視窗暫停換位。低動態設定取消杯子高速移動，並保留真鑰匙微光。
+
+`key-shuffle.js` 管理換位、選擇、救援與收取；`key-shuffle.css` 繪製紙杯、鑰匙、換位軌跡與手機版面。素材皆由 HTML/CSS/SVG 產生，不引入外部圖檔或服務。
 
 ## 手機虛擬搖桿
 
@@ -122,7 +132,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -162,7 +172,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。
