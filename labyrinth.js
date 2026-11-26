@@ -26,7 +26,7 @@
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>'+(state.difficulty==="quick"?"本輪僅探索念珠菌，接著查文獻。":"這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。")+'</p>'+
       (state.difficulty==="hard"?'<p class="key-completion">線索鑰匙 '+(state.keys?.length||0)+' / 6 · 已解鎖 '+state.quizAnswers.length+' / 6 道大門</p>':"")+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=21&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=22&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -66,8 +66,8 @@
     return '<section class="labyrinth-mission"><div><p class="eyebrow">本次探路 · 白色念珠菌</p><h2>'+(window.BreathModes?.isQuick()?"沿線索走到出口":"沿證據，找到能走的出口。")+'</h2><p>'+
       html(data.task(state))+'</p></div><span class="labyrinth-companion">同行候選<br><b>Candida albicans</b></span></section>'+
       '<div class="labyrinth-layout"><section class="labyrinth-board"><div class="labyrinth-viewport" tabindex="0" aria-label="自由探索迷宮，方向鍵或 WASD 移動">'+
-      '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div><div class="labyrinth-fog" aria-hidden="true"></div></div>'+
-      '<div class="labyrinth-controls"><p>'+(window.BreathModes?.isQuick()?"方向鍵／WASD／方向鈕移動，沿金線走。":"在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small>")+'</p>'+
+      '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div><div class="labyrinth-fog" aria-hidden="true"></div>'+window.BreathTouchControls.render()+'</div>'+
+      '<div class="labyrinth-controls"><p><span class="desktop-move-copy">'+(window.BreathModes?.isQuick()?"方向鍵／WASD／方向鈕移動，沿金線走。":"在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small>")+'</span><span class="mobile-move-copy">拖動搖桿探索，走近亮點查看線索。</span></p>'+
       '<div class="dpad">'+[["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([id,label,name])=>
         button(label,"labyrinth-move",id,{attrs:' aria-label="向'+name+'移動"'+(state.dialog?' disabled':"")})).join("")+
       '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+keyBag+journal+
@@ -96,6 +96,11 @@
     state.explored ||= [];
     const explored=new Set(state.explored);
     const locked=()=>Boolean(state.dialog || state.complete || document.querySelector("dialog[open]"));
+    let stickInput=null;
+    const joystick=window.BreathTouchControls.mount(viewport,{
+      move(input){stickInput=input;held=null;route=[];pending="";},
+      end(){stickInput=null;},locked
+    });
     function reveal() {
       const radius=Math.ceil(data.visionRadius);
       for(let y=Math.max(0,at.y-radius);y<Math.min(data.height,at.y+radius+1);y++)
@@ -231,7 +236,7 @@
       if(!visited.has(key)){visited.add(key);state.visited.push(key);}
       const item=data.landmarks.find(item=>item.x===at.x&&item.y===at.y);
       if(item&&(!state.seen.includes(item.id)||pending===item.id)){
-        held=null;route=[];pending="";onVisit(item.id);
+        joystick.reset();held=null;route=[];pending="";onVisit(item.id);
       }
     }
     function begin(next,now) {
@@ -246,15 +251,16 @@
           visual={x:segment.from.x+(segment.to.x-segment.from.x)*t,y:segment.from.y+(segment.to.y-segment.from.y)*t};
           walk=[0,1,2,1][Math.floor(now/95)%4];
           if(t===1){at={...segment.to};visual={...at};segment=null;arrived();}
-        }else if(held){
-          const [dx,dy]=moves[held],next={x:at.x+dx,y:at.y+dy};
+        }else if(stickInput?.direction||held){
+          const [dx,dy]=moves[stickInput?.direction||held],next={x:at.x+dx,y:at.y+dy};
           if(grid[next.y]?.[next.x])begin(next,now);else blocked(next);
         }else if(route.length)begin(route.shift(),now);else walk=1;
-      }
+      }else joystick.reset();
       draw(now);raf=requestAnimationFrame(tick);
     }
     function walkTo(goal,eventId="") {
       if(locked())return;
+      joystick.reset();
       if(!data.inSight(visual,goal)){onBlocked("那裡還在黑暗中。先沿著看得見的石板路探索。");return;}
       if(!grid[goal.y]?.[goal.x]){blocked(goal);return;}
       const visibleGrid=grid.map((row,y)=>row.map((floor,x)=>floor&&data.inSight(visual,{x,y})));
@@ -271,7 +277,7 @@
     }
     const keydown=event=>{
       if(event.altKey||event.ctrlKey||event.metaKey||event.target.closest("input,textarea")||locked())return;
-      if(keys[event.code]){event.preventDefault();held=keys[event.code];route=[];pending="";}
+      if(keys[event.code]){event.preventDefault();joystick.reset();held=keys[event.code];route=[];pending="";}
     };
     const keyup=event=>{if(keys[event.code]===held)held=null;};
     const release=()=>{held=null;};
@@ -287,7 +293,7 @@
       }
     };
     const mapClick=event=>{
-      if(event.target.closest("button")||locked())return;
+      if(event.target.closest("button,.touch-joystick")||locked())return;
       const rect=camera.getBoundingClientRect();
       walkTo({x:Math.floor((event.clientX-rect.x)/size),y:Math.floor((event.clientY-rect.y)/size)});
     };
@@ -299,7 +305,7 @@
     tiles.addEventListener("load",loaded);sprite.addEventListener("load",loaded);
     reveal();rebuild();draw();raf=requestAnimationFrame(tick);
     return {toLandmark,walkTo,stop(){
-      stopped=true;cancelAnimationFrame(raf);
+      stopped=true;joystick.stop();cancelAnimationFrame(raf);
       document.removeEventListener("keydown",keydown);document.removeEventListener("keyup",keyup);
       window.removeEventListener("blur",release);window.removeEventListener("pointerup",release);window.removeEventListener("pointercancel",release);
       root.removeEventListener("pointerdown",pointerdown);root.removeEventListener("click",controlClick);viewport.removeEventListener("click",mapClick);

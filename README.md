@@ -8,10 +8,10 @@
 
 開始畫面可選快速、簡單、普通、困難；預設普通。重新開始保留這次選的模式，回到標題後可再換。快速試玩也沿用選定模式。分享時可使用：
 
-- [快速模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&difficulty=quick)
-- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&difficulty=easy)
-- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&difficulty=normal)
-- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&difficulty=hard)
+- [快速模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=quick)
+- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=easy)
+- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=normal)
+- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&difficulty=hard)
 
 | 關卡 | 簡單 | 普通 | 困難 |
 | --- | --- | --- | --- |
@@ -55,7 +55,15 @@
 
 簡單版使用 29×23 的房間與走廊地圖：從入口廣場走到左側紀錄室，經過中央庭院與上方證據室，最後繞過出口區的彎道。包含小迴圈和可回頭的短岔路，線索與出口分開配置，不再只走一條短通道。
 
-角色需自行移動到紀錄與出口，金色路線只指路。保留方向鍵、WASD、觸控方向鈕與點亮處石板路的移動方式；兩道證據門仍需依序核對來源才能通過。
+角色需自行移動到紀錄與出口，金色路線只指路。保留方向鍵、WASD、手機虛擬搖桿與點亮處石板路的移動方式；兩道證據門仍需依序核對來源才能通過。
+
+## 手機虛擬搖桿
+
+肺城移動、自由探索迷宮與規則迷宮都支援左下角的虛擬搖桿。按住圓盤拖曳可連續移動，不必反覆點方向鈕；拖向另一側即可轉向，放開會停止（迷宮會走完當前一格）。肺城支援斜向與推桿幅度，迷宮沿四向格子移動。
+
+搖桿在手機／觸控裝置及較窄視窗顯示，方向鈕改在桌機保留；鍵盤與點地圖的操作仍可用。只有搖桿區阻止捲動，地圖其他位置與頁面仍可正常滑動；手指移出圓盤也能持續控制，放手、觸控取消、切到背景、失焦或轉向螢幕都會解除移動。走到線索、開啟視窗或換關也會重設搖桿，避免角色自行前進。
+
+`touch-controls.js` 共用拖曳、中心死區、四向轉向緩衝、指標捕捉與生命週期清理；`touch-controls.css` 將控制盤固定在地圖內，並保留桌機方向鈕。教學會依裝置圈選搖桿。
 
 ## 開始調查
 
@@ -114,7 +122,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -154,7 +162,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=21&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=22&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。

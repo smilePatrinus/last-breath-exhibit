@@ -69,6 +69,12 @@
     let at={...(state.position || spawn)},visual={...at};
     let route=[],segment=null,face="up",walk=1,raf=0,stopped=false,held=null,latched=false;
     const locked=Boolean(state.drawer || state.feedback || state.results[state.candidate]);
+    let stickInput=null;
+    const joystick=window.BreathTouchControls.mount(viewport,{
+      move(input){stickInput=input;held=null;route=[];},
+      end(){stickInput=null;},
+      locked:()=>locked||latched||state.returning||Boolean(document.querySelector("dialog[open]"))
+    });
     canvas.width=width*size;canvas.height=height*size;
     ctx.imageSmoothingEnabled=false;
     function tile(index,x,y,w=size,h=size) {
@@ -107,7 +113,7 @@
       onPosition({...at});
       const index=doors.findIndex((door) => door.x===at.x && door.y===at.y);
       if(index>=0 && !latched && !locked && !state.returning) {
-        latched=true;held=null;route=[];
+        latched=true;joystick.reset();held=null;route=[];
         onDoor(rules.current(state).options[index].id);
       }
       if(state.returning && at.x===10 && at.y===10) state.returning=false;
@@ -125,17 +131,18 @@
           walk=[0,1,2,1][Math.floor(now/95)%4];
           if(t===1) {at={...segment.to};visual={...at};segment=null;arrived();}
         } else {
-          if(held) {
-            const [dx,dy]=vectors[held],next={x:at.x+dx,y:at.y+dy};
+          if(stickInput?.direction||held) {
+            const [dx,dy]=vectors[stickInput?.direction||held],next={x:at.x+dx,y:at.y+dy};
             if(grid[next.y]?.[next.x]) begin(next,now);
           } else if(route.length) begin(route.shift(),now);
           else walk=1;
         }
-      }
+      } else joystick.reset();
       draw(now);raf=requestAnimationFrame(tick);
     }
     function walkTo(goal) {
       if(locked || latched || state.returning || !grid[goal.y]?.[goal.x]) return;
+      joystick.reset();
       held=null;
       route=pathTo(grid,segment?.to || at,goal);
       if(!route.length && at.x===goal.x && at.y===goal.y) arrived();
@@ -149,12 +156,12 @@
     const keyDown=(event)=>{
       if(!keys[event.code] || event.altKey || event.ctrlKey || event.metaKey ||
           event.target.closest("input,textarea") || locked || latched || state.returning) return;
-      event.preventDefault();route=[];held=keys[event.code];
+      event.preventDefault();joystick.reset();route=[];held=keys[event.code];
     };
     const keyUp=(event)=>{if(keys[event.code]===held)held=null;};
     const blur=()=>{held=null;};
     const click=(event)=>{
-      if(event.target.closest("button") || locked) return;
+      if(event.target.closest("button,.touch-joystick") || locked) return;
       const r=camera.getBoundingClientRect();
       walkTo({x:Math.floor((event.clientX-r.left)/size),y:Math.floor((event.clientY-r.top)/size)});
     };
@@ -165,6 +172,7 @@
     draw(0);raf=requestAnimationFrame(tick);
     function stop() {
       stopped=true;cancelAnimationFrame(raf);
+      joystick.stop();
       document.removeEventListener("keydown",keyDown);document.removeEventListener("keyup",keyUp);
       window.removeEventListener("blur",blur);viewport.removeEventListener("click",click);
       tileImage.removeEventListener("load",draw);spriteImage.removeEventListener("load",draw);
@@ -234,7 +242,7 @@
       '<div class="maze-layout"><section class="maze-board"><div class="maze-viewport" aria-label="判讀迷宮地圖" tabindex="0">'+
       '<div class="maze-camera"><canvas aria-hidden="true"></canvas>'+markers+
       button("手冊","maze-book","",{kind:"maze-map-book",attrs:' style="left:352px;top:352px;"'})+
-      '</div></div><div class="maze-under-map"><p>選一扇門前往，或用方向鍵、WASD 與點地圖移動。</p>'+
+      '</div>'+window.BreathTouchControls.render()+'</div><div class="maze-under-map"><p><span class="desktop-move-copy">選一扇門前往，或用方向鍵、WASD 與點地圖移動。</span><span class="mobile-move-copy">拖動搖桿走向門，也可直接點門牌。</span></p>'+
       '<div class="dpad">'+[["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([id,label,name])=>
         button(label,"maze-step",id,{attrs:' aria-label="向'+name+'移動"'+(state.drawer || state.feedback?' disabled':"")})).join("")+
       '</div></div><div class="maze-options" aria-label="可前往的門">'+options+'</div>'+drawer+message+'</section>'+

@@ -27,6 +27,12 @@
     const pressed = new Set();
     let route = [], raf = 0, last = 0, phase = 0, facing = "right";
     let closed = false, arrived = false, ratio = 1, worldWidth;
+    let stickInput = null;
+    const joystick = window.BreathTouchControls.mount(viewport, {
+      move(input) { stickInput = input; pressed.clear(); route = []; },
+      end() { stickInput = null; },
+      locked: () => closed || arrived || Boolean(document.querySelector("dialog[open]"))
+    });
     const clamp = (value, min, max) => Math.min(max,Math.max(min,value));
     const rangeTo = (point) => Math.hypot((point.x-position.x)*ratio,point.y-position.y);
 
@@ -58,6 +64,7 @@
       last = now;
       if (document.querySelector("dialog[open]")) {
         pressed.clear();
+        joystick.reset();
         raf = requestAnimationFrame(tick);
         return;
       }
@@ -66,7 +73,8 @@
         dx += vector[key][0];
         dy += vector[key][1];
       }
-      if (!pressed.size && route.length) {
+      if (stickInput) { dx = stickInput.x; dy = stickInput.y; }
+      if (!stickInput && !pressed.size && route.length) {
         const focus = route[0];
         const distance = rangeTo(focus);
         if (distance < 0.014) {
@@ -80,7 +88,7 @@
       const length = Math.hypot(dx,dy);
       if (length) {
         facing = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
-        const speed = Math.min(elapsed*0.00067, route.length ? rangeTo(route[0]) : Infinity);
+        const speed = Math.min(elapsed*0.00067*(stickInput ? length : 1), route.length ? rangeTo(route[0]) : Infinity);
         const nextX = clamp(position.x + dx / length * speed / ratio,bounds.left,bounds.right);
         const nextY = clamp(position.y + dy / length * speed,bounds.top,bounds.bottom);
         const moved = Math.hypot((nextX-position.x)*ratio,nextY-position.y);
@@ -98,6 +106,7 @@
     }
 
     function walkTo(point = target) {
+      joystick.reset();
       pressed.clear();
       const destination = {
         x:clamp(point.x,bounds.left,bounds.right), y:clamp(point.y,bounds.top,bounds.bottom)
@@ -122,6 +131,7 @@
       const direction = moves[event.code];
       if (!direction) return;
       event.preventDefault();
+      joystick.reset();
       route = [];
       pressed.add(direction);
     }
@@ -131,7 +141,7 @@
     };
     const clearKeys = () => pressed.clear();
     const point = (event) => {
-      if (event.target.closest("button")) return;
+      if (event.target.closest("button,.touch-joystick")) return;
       const area = camera.getBoundingClientRect();
       walkTo({x:(event.clientX-area.left)/area.width,y:(event.clientY-area.top)/area.height});
     };
@@ -147,6 +157,7 @@
 
     function stop() {
       closed = true;
+      joystick.stop();
       cancelAnimationFrame(raf);
       resize.disconnect();
       pressed.clear();

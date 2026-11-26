@@ -22,7 +22,7 @@
      say("detective","點證據言彈，再點有底色的片語。",{face:2,emphasis:["證據言彈","有底色的片語"]})]
   ];
   const objectives=["核對同一檢體的四格資料。","走到紀錄，再找出口。","比對菌名與檢體部位。","用證據核對推論。"];
-  const tasks=["選檢體 → 核對四格 → 收錄。","方向鍵或方向鈕移動，沿金線走。","圈選檢體；左滑略過、右滑收入。","點言彈、開始議論，再瞄準片語。"];
+  const tasks=["選檢體 → 核對四格 → 收錄。","搖桿或方向鍵移動，沿金線走。","圈選檢體；左滑略過、右滑收入。","點言彈、開始議論，再瞄準片語。"];
   function chapter(base,index) {
     return {...base,objective:objectives[index],task:tasks[index],script:scripts[index]};
   }
@@ -82,7 +82,7 @@
       if(state.labyrinth.dialog)return null;
       if(state.labyrinth.complete)return step("quick-maze-done",action("review-next"),"前往文獻室","帶著已找到的線索出發。");
       if(state.labyrinth.visited.length>2)return null;
-      return step("quick-walk",".labyrinth-controls .dpad","沿金線走","方向鍵或方向鈕移動。亮點是線索。","繼續調查");
+      return step("quick-walk",window.BreathTouchControls.target(".labyrinth-controls .dpad"),"沿金線走","拖動搖桿或按方向鍵移動。亮點是線索。","繼續調查");
     }
     if(state.view==="literature"){
       const p=window.BreathContent.literature[state.paper];

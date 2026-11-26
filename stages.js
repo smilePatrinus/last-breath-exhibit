@@ -94,8 +94,8 @@
       '<h1 tabindex="-1" data-focus>' + content[state.chapter].name + '</h1><p>' + chapter.objective +
       '</p></div><span class="destination">目的地 · ' + chapter.target + '</span></header>' +
       '<div class="map-viewport" aria-label="肺城地圖"><div class="map-camera"><div class="map-floor"></div>' +
-      stations + '<div class="map-actor" aria-hidden="true"><i></i><div class="map-sprite"></div></div></div></div>' +
-      '<footer class="map-controls"><p>方向鍵、WASD 或點地圖移動。</p><div class="map-buttons">' +
+      stations + '<div class="map-actor" aria-hidden="true"><i></i><div class="map-sprite"></div></div></div>' + window.BreathTouchControls.render() + '</div>' +
+      '<footer class="map-controls"><p><span class="desktop-move-copy">方向鍵、WASD 或點地圖移動。</span><span class="mobile-move-copy">拖動左下搖桿移動，放開停止。</span></p><div class="map-buttons">' +
       '<div class="dpad" aria-label="方向控制">' +
       [["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([key,symbol,label]) =>
         button(symbol,"walk-step",key,{attrs:' aria-label="向'+label+'移動"'})).join("") +

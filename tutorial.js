@@ -60,8 +60,8 @@
     if (session.complete) return step("labyrinth-finished",action("review-next"),"把走過的線索帶去下一站",
       "這次探索了念珠菌路線。接著帶原始案卷裡 K. variicola 的疑問去文獻室。","繼續調查");
     if (session.visited.length>2 || acknowledged.has("labyrinth-walk")) return null;
-    return step("labyrinth-walk",".labyrinth-controls .dpad","先試著走幾步",
-      "身邊只有一圈微光。用方向鍵、WASD 或點亮處的石板路移動，手機可按住方向按鈕。走近亮點查看線索，小地圖會留下探索紀錄。","我知道了");
+    return step("labyrinth-walk",window.BreathTouchControls.target(".labyrinth-controls .dpad"),"先試著走幾步",
+      "身邊只有一圈微光。手機按住左下搖桿拖曳移動，放開停止；電腦可用方向鍵或 WASD。走近亮點查看線索，小地圖會留下探索紀錄。","我知道了");
   }
 
   function maze() {
@@ -132,7 +132,7 @@
     if (!state) return null;
     if (state.difficulty === "quick") return window.BreathQuick.guide(state,action,step);
     if (state.view === "travel") return step("travel-go",action("walk-goal"),"先走到這關的目的地",
-      "你可以按這個按鈕，讓偵探走到櫃檯。也能用方向鍵、WASD 或點地圖移動；到站後會接上劇情和操作教學。");
+      "你可以按這個按鈕，讓偵探走到櫃檯。手機也能拖動左下搖桿，電腦可用方向鍵或 WASD；到站後會接上劇情和操作教學。");
     const lessons = {gather,maze,labyrinth,literature,debate,report};
     return lessons[state.view]?.() || null;
   }
