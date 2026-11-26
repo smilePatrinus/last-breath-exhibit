@@ -2,6 +2,9 @@
   "use strict";
   // Original motifs and synthesized instruments, composed for this game.
   const compositions={
+    pursuit:{title:"巡邏守衛",bpm:136,wave:"triangle",sustain:.5,
+      melody:[50,null,57,53,50,null,56,null,50,null,57,53,49,null,56,null,53,null,60,57,53,null,59,null,49,null,56,53,49,null,48,null],
+      bass:[26,26,29,25],chords:[[50,53,57],[50,53,56],[53,57,60],[49,53,56]],arp:true,drive:true},
     night:{title:"肺城夜航",bpm:72,wave:"triangle",sustain:1.6,
       melody:[62,null,65,null,69,null,72,69,67,null,65,null,64,null,62,null,65,null,69,null,74,null,72,69,67,null,64,null,65,null,62,null],
       bass:[38,46,41,43],chords:[[62,65,69],[58,62,65],[60,65,69],[60,64,67]],arp:false},
@@ -100,8 +103,8 @@
       else start();
     }catch{ /* Music is optional on browsers without Web Audio. */ }
   }
-  function scene(view,chapter,talking=false) {
-    const next=["ending","done","report"].includes(view)?"ending":
+  function scene(view,chapter,talking=false,danger=false) {
+    const next=danger&&view==="labyrinth"?"pursuit":["ending","done","report"].includes(view)?"ending":
       ["intro","title"].includes(view)?"night":["archive","maze","library","debate"][chapter]||"night";
     duck=talking;
     if(next!==trackId){

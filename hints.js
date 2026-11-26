@@ -34,6 +34,7 @@
   }
   function labyrinth(state) {
     const session=state.labyrinth;
+    if(window.BreathPursuit.active(session.pursuit))return step("pursuit-escape",".labyrinth-viewport","先躲開巡邏守衛","保持移動，用轉角擋住視線。青色櫃子可以躲藏，靠近按 E 或「躲進櫃子」，等腳步離開再出來。");
     if(session.cupGame){
       const phase=session.cupGame.phase;
       if(phase==="won")return step("cup-claim",action("key-claim"),"收下真鑰匙","按「收下鑰匙，查看線索」，再核對原始紀錄。");

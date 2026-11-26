@@ -18,15 +18,16 @@
       '<g class="labyrinth-mini-floor">'+cells.join("")+'</g><path class="labyrinth-hint-route" d="" fill="none" aria-hidden="true"/>'+
       data.landmarks.map(item=>'<circle data-mini-landmark="'+item.id+'" cx="'+(item.x+.5)+'" cy="'+(item.y+.5)+'" r=".6" class="'+
         (state.seen.includes(item.id)?"read":item.type==="exit"?"exit":item.type==="key"?"clue-key":item.type==="gate"?"locked-gate":"landmark")+(known.has(item.x+','+item.y)?'':' undiscovered')+'"/>').join("")+
-      '<circle class="labyrinth-mini-player" cx="'+(state.position.x+.5)+'" cy="'+(state.position.y+.5)+'" r=".7"/></svg>';
+      window.BreathPursuit.minimap(state.pursuit,state.explored)+'<circle class="labyrinth-mini-player" cx="'+(state.position.x+.5)+'" cy="'+(state.position.y+.5)+'" r=".7"/></svg>';
   }
   function render(state,button,html) {
+    window.BreathPursuit.ensure(state);
     if(state.complete && !state.dialog) return '<section class="panel labyrinth-finish"><p class="eyebrow">白色念珠菌 · 本輪探索完成</p>'+
       '<h2>'+(state.difficulty==="quick"?"探索完成":"找到了出口，也留下了證據的界線。")+'</h2><ol>'+state.trace.map(item=>'<li><strong>'+html(item.title)+
       '</strong><p>'+html(item.choice)+'</p></li>').join("")+'</ol><p>'+(state.difficulty==="quick"?"本輪僅探索念珠菌，接著查文獻。":"這次實際走過的是念珠菌路線。其他兩個候選仍保留在原始案卷，接著去文獻室追查 K. variicola 的疑問。")+'</p>'+
       (state.difficulty==="hard"?'<p class="key-completion">線索鑰匙 '+(state.keys?.length||0)+' / 6 · 已解鎖 '+state.quizAnswers.length+' / 6 道大門</p>':"")+
       '<div class="actions">'+button("前往文獻室","review-next","",{kind:"primary"})+
-      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=23&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
+      button("再走一次","labyrinth-replay")+'</div><p class="hint"><a href="?v=24&demo=maze&maze=rules">對照原本的規則迷宮</a></p></section>';
     const journal='<section class="panel labyrinth-journal"><p class="eyebrow">一路找到的線索</p>'+
       '<div class="labyrinth-fact known"><b>mNGS</b><p>白色念珠菌讀數最高</p><small>檢出訊號，還需其他支持。</small></div>'+
       '<div class="labyrinth-fact '+(state.found.specimen?"known":"")+'"><b>培養從哪裡來？</b><p>'+
@@ -68,16 +69,16 @@
     return '<section class="labyrinth-mission"><div><p class="eyebrow">本次探路 · 白色念珠菌</p><h2>'+(window.BreathModes?.isQuick()?"沿線索走到出口":"沿證據，找到能走的出口。")+'</h2><p>'+
       html(data.task(state))+'</p></div><span class="labyrinth-companion">同行候選<br><b>Candida albicans</b></span></section>'+
       '<div class="labyrinth-layout"><section class="labyrinth-board"><div class="labyrinth-viewport" tabindex="0" aria-label="自由探索迷宮，方向鍵或 WASD 移動">'+
-      '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div><div class="labyrinth-fog" aria-hidden="true"></div>'+window.BreathTouchControls.render()+'</div>'+
+      '<div class="labyrinth-camera"><canvas aria-hidden="true"></canvas>'+landmarks+'</div><div class="labyrinth-fog" aria-hidden="true"></div>'+window.BreathTouchControls.render()+window.BreathPursuit.hud(state.pursuit,button)+'</div>'+
       '<div class="labyrinth-controls"><p><span class="desktop-move-copy">'+(window.BreathModes?.isQuick()?"方向鍵／WASD／方向鈕移動，沿金線走。":"在身邊的微光中探索，走近亮點查看線索。<br><small>方向鍵／WASD、點亮處的石板路，或按住方向按鈕。</small>")+'</span><span class="mobile-move-copy">拖動搖桿探索，走近亮點查看線索。</span></p>'+
       '<div class="dpad">'+[["left","←","左"],["up","↑","上"],["down","↓","下"],["right","→","右"]].map(([id,label,name])=>
         button(label,"labyrinth-move",id,{attrs:' aria-label="向'+name+'移動"'+(state.dialog?' disabled':"")})).join("")+
       '</div></div>'+dialog+'</section><aside class="labyrinth-aside">'+keyBag+journal+
       '<details class="panel labyrinth-minimap" open><summary>看已探索的區域</summary>'+minimap(state)+
-      '<p>只記下照亮過的附近；金點是你。</p><p class="labyrinth-hint-status" hidden>金色虛線是提示路徑，沿著它走到下一份線索。</p></details></aside></div>';
+      '<p>只記下照亮過的附近；金點是你。'+(state.pursuit?'青色小格是躲藏櫃。':'')+'</p><p class="labyrinth-hint-status" hidden>金色虛線是提示路徑，沿著它走到下一份線索。</p></details></aside></div>'+window.BreathPursuit.modal(state.pursuit,button);
   }
 
-  function mount(root,state,onVisit,onBlocked) {
+  function mount(root,state,onVisit,onBlocked,onThreat=()=>{},onHide=()=>false,onFootstep=()=>{}) {
     const viewport=root.querySelector(".labyrinth-viewport");
     if(!viewport)return null;
     const camera=root.querySelector(".labyrinth-camera"),canvas=root.querySelector("canvas");
@@ -93,11 +94,11 @@
     base.width=canvas.width;base.height=canvas.height;
     const terrain=base.getContext("2d");
     let at={...state.position},visual={...at},route=[],segment=null,held=null,face="up",walk=1;
-    let raf=0,stopped=false,pending="",lastBlock=0;
+    let raf=0,stopped=false,pending="",lastBlock=0,lastTime=performance.now(),lastFootstep=0,painted=false;
     const visited=new Set(state.visited);
     state.explored ||= [];
     const explored=new Set(state.explored);
-    const locked=()=>Boolean(state.dialog || state.complete || document.querySelector("dialog[open]"));
+    const locked=()=>Boolean(state.dialog || state.complete || window.BreathPursuit.overlay(state.pursuit) || document.querySelector("dialog[open]"));
     let stickInput=null;
     const joystick=window.BreathTouchControls.mount(viewport,{
       move(input){stickInput=input;held=null;route=[];pending="";},
@@ -115,6 +116,7 @@
           }
         }
       for(const item of data.landmarks)miniLandmarks.get(item.id)?.classList.toggle('undiscovered',!explored.has(item.x+','+item.y));
+      for(const closet of state.pursuit?.closets||[])root.querySelector('[data-closet-mini="'+closet.id+'"]')?.classList.toggle('undiscovered',!explored.has(closet.x+','+closet.y));
     }
     function tile(context,index,x,y,w=size,h=size) {
       if(tiles.complete&&tiles.naturalWidth) {
@@ -175,6 +177,7 @@
     }
     function draw(now=0) {
       if(stopped)return;
+      if(painted&&window.BreathPursuit.overlay(state.pursuit)){window.BreathPursuit.paint(root,state.pursuit,at,grid);return;}
       ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(base,0,0);
       ctx.fillStyle="#ffe8a522";
       for(const key of visited){const [x,y]=key.split(",").map(Number);ctx.fillRect(x*size+7,y*size+7,18,18);}
@@ -200,6 +203,7 @@
         ctx.beginPath();ctx.arc(x,y,item.type==="record"?18:13,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
       }
       drawHint();
+      window.BreathPursuit.draw(ctx,state.pursuit,size,now,at);
       const px=(visual.x+.5)*size,py=(visual.y+1)*size;
       ctx.fillStyle="#07152277";ctx.beginPath();ctx.ellipse(px,py-2,10,3,0,0,Math.PI*2);ctx.fill();
       if(sprite.complete&&sprite.naturalWidth) {
@@ -219,13 +223,15 @@
       fog.style.setProperty('--vision-radius',(data.visionRadius*size)+'px');
       for(const item of data.landmarks){
         const sign=signs.get(item.id),visible=data.inSight(visual,item,2.25);
-        sign.hidden=!visible;sign.disabled=!visible||Boolean(state.dialog);
+        sign.hidden=!visible;sign.disabled=!visible||Boolean(state.dialog)||window.BreathPursuit.active(state.pursuit)||window.BreathPursuit.overlay(state.pursuit);
         const below=item.y<visual.y;
         sign.classList.toggle('below',below);
         sign.style.top=((below?item.y+1:item.y)*size+(below?8:-15))+'px';
       }
       const mini=root.querySelector(".labyrinth-mini-player");
       if(mini){mini.setAttribute("cx",visual.x+.5);mini.setAttribute("cy",visual.y+.5);}
+      window.BreathPursuit.paint(root,state.pursuit,at,grid);
+      painted=true;
     }
     function blocked(goal) {
       const gate=data.gates.find(item=>item.x===goal.x&&item.y===goal.y&&!state.found[item.id]);
@@ -233,11 +239,15 @@
     }
     function arrived() {
       state.position={...at};
+      window.BreathPursuit.moved(state.pursuit,at);
       reveal();
       const key=at.x+","+at.y;
       if(!visited.has(key)){visited.add(key);state.visited.push(key);}
       const item=data.landmarks.find(item=>item.x===at.x&&item.y===at.y);
-      if(item&&(!state.seen.includes(item.id)||pending===item.id)){
+      if(pending.startsWith("closet:")){
+        const id=pending.slice(7);pending="";hideInside(id);return;
+      }
+      if(item&&!window.BreathPursuit.active(state.pursuit)&&(!state.seen.includes(item.id)||pending===item.id)){
         joystick.reset();held=null;route=[];pending="";onVisit(item.id);
       }
     }
@@ -247,6 +257,17 @@
     }
     function tick(now) {
       if(stopped)return;
+      const paused=document.hidden||state.dialog||state.complete||Boolean(document.querySelector('dialog[open],.tutorial-panel:not([hidden])'));
+      const changed=window.BreathPursuit.advance(state.pursuit,now-lastTime,grid,at,visual,paused);
+      lastTime=now;
+      if(changed){
+        const modal=window.BreathPursuit.overlay(state.pursuit);
+        if(modal){joystick.reset();held=null;route=[];segment=null;}
+        onThreat(modal);
+        if(stopped)return;
+      }
+      const enemy=window.BreathPursuit.enemyVisual(state.pursuit);
+      if(!paused&&enemy&&["chasing","hidden"].includes(state.pursuit.phase)&&now-lastFootstep>340&&Math.hypot(enemy.x-at.x,enemy.y-at.y)<7){lastFootstep=now;onFootstep();}
       if(!locked()){
         if(segment){
           const t=Math.min(1,(now-segment.start)/105);
@@ -277,8 +298,19 @@
         walkTo(landmark,id);
       }
     }
+    function hideInside(id) {
+      if(locked())return false;
+      const closet=window.BreathPursuit.nearest(state.pursuit,at,grid);
+      if(!closet||closet.id!==id)return false;
+      joystick.reset();held=null;route=[];segment=null;pending="";
+      return onHide(id);
+    }
     const keydown=event=>{
       if(event.altKey||event.ctrlKey||event.metaKey||event.target.closest("input,textarea")||locked())return;
+      if(event.code==="KeyE"){
+        const closet=window.BreathPursuit.nearest(state.pursuit,at,grid);
+        if(closet){event.preventDefault();hideInside(closet.id);}return;
+      }
       if(keys[event.code]){event.preventDefault();joystick.reset();held=keys[event.code];route=[];pending="";}
     };
     const keyup=event=>{if(keys[event.code]===held)held=null;};
@@ -306,7 +338,7 @@
     const loaded=()=>{rebuild();draw();};
     tiles.addEventListener("load",loaded);sprite.addEventListener("load",loaded);
     reveal();rebuild();draw();raf=requestAnimationFrame(tick);
-    return {toLandmark,walkTo,stop(){
+    return {toLandmark,walkTo,hide:hideInside,stop(){
       stopped=true;joystick.stop();cancelAnimationFrame(raf);
       document.removeEventListener("keydown",keydown);document.removeEventListener("keyup",keyup);
       window.removeEventListener("blur",release);window.removeEventListener("pointerup",release);window.removeEventListener("pointercancel",release);

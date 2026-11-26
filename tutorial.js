@@ -247,7 +247,7 @@
   function update(snapshot, controls) {
     state = snapshot;
     if (controls) assists = controls;
-    const supported = state.difficulty !== "hard" && ["travel","gather","maze","labyrinth","literature","debate","report"].includes(state.view);
+    const supported = state.difficulty !== "hard" && !(state.view==="labyrinth"&&window.BreathPursuit.overlay(state.labyrinth?.pursuit)) && ["travel","gather","maze","labyrinth","literature","debate","report"].includes(state.view);
     const nextGroup = supported ? state.view : "";
     help.hidden = !supported;
     quickHint.hidden = !supported;

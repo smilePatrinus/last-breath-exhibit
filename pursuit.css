@@ -1,0 +1,70 @@
+.pursuit-hud { position:absolute; inset:9px 9px auto; z-index:4; display:flex; justify-content:space-between; gap:10px; padding:8px 11px; border:1px solid #71998b; border-radius:5px; background:#102c31eb; color:#d8e8d6; font-size:14px; line-height:1.5; pointer-events:none; }
+.pursuit-status { max-width:84%; }
+.pursuit-distance { flex-shrink:0; align-self:center; color:#e7d3ad; font-size:14px; }
+.pursuit-hud[data-pursuit-phase=warning],.pursuit-hud[data-pursuit-phase=chasing] { border-color:#d5a86b; background:#4b302bed; color:#ffead2; }
+.pursuit-hud[data-pursuit-phase=chasing] { box-shadow:0 0 15px #bd694d40; }
+.pursuit-hide { position:absolute; z-index:4; right:12px; bottom:28px; min-height:48px; padding:9px 12px; border:2px solid #bcdfbf; border-radius:7px; background:#205346; color:#f7eac8; font-size:16px; font-weight:750; }
+.closet-mini { fill:#8dd5bd; stroke:#102d2c; stroke-width:.2; }
+.pursuit-modal { position:fixed; z-index:50; left:50%; top:50%; transform:translate(-50%,-50%); width:min(650px,calc(100% - 28px)); max-height:calc(100svh - 28px); overflow-y:auto; border:1px solid #b4bc94; border-radius:9px; padding:26px; background:radial-gradient(ellipse at top,#294a45,#12252e 75%); box-shadow:0 0 0 100vmax #05111ded; }
+.pursuit-modal h2 { color:#f6dfad; font:750 clamp(1.45rem,3vw,2rem)/1.4 var(--serif); margin:6px 0 13px; }
+.pursuit-modal>p { color:#dbe9dc; font-size:16px; line-height:1.7; }
+.pursuit-modal .actions { margin-top:20px; }
+.macrophage-art { width:100%; height:100%; image-rendering:pixelated; filter:drop-shadow(0 6px 0 #05182470); }
+.intro-cell { float:right; width:94px; height:112px; margin:0 0 8px 14px; }
+.pursuit-lesson { list-style:none; padding:0; margin:18px 0 0; clear:both; display:grid; gap:10px; counter-reset:lesson; }
+.pursuit-lesson li { border-left:3px solid #94bba1; padding:8px 12px; background:#24413b; font-size:16px; line-height:1.5; }
+.pursuit-lesson b { display:block; color:#f1dda7; margin-bottom:4px; }
+.pursuit-lesson span { color:#d0e3d5; }
+.pursuit-caught { text-align:center; background:radial-gradient(ellipse at 50% 20%,#47534b,#13222b 70%); }
+.caught-cell { width:145px; height:164px; margin:0 auto 10px; }
+.pursuit-retain { padding-top:12px; color:#bcd8be!important; }
+.pursuit-caught .actions { justify-content:center; }
+.closet-view { width:min(1100px,calc(100% - 24px)); height:min(720px,calc(100svh - 24px)); padding:0; overflow:hidden; background:#090e14; border-color:#5e604c; isolation:isolate; }
+.closet-world { position:absolute; inset:0; background:linear-gradient(#122636,#253d3d 62%,#121e29 62%); overflow:hidden; }
+.closet-world::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg,transparent 0 12%,#42605c55 12% 13%,transparent 13% 25%),linear-gradient(25deg,transparent 45%,#07172888 46% 48%,transparent 49%); }
+.closet-floor { position:absolute; inset:62% -50% -50%; background:repeating-conic-gradient(#41514a 0 25%,#202e31 0 50%) 0 0/64px 64px; transform:perspective(350px) rotateX(60deg); transform-origin:50% 0; }
+.closet-shadow { position:absolute; left:var(--cell-x,50%); top:25%; width:clamp(140px,22vw,240px); height:44%; transform:translateX(-50%); opacity:var(--cell-visible,0); filter:brightness(.62); transition:opacity .3s; }
+.closet-door { position:absolute; top:0; bottom:0; width:41%; z-index:2; background:repeating-linear-gradient(90deg,#131a1b 0 4px,#252b27 5px 14px,#161e20 15px 18px); border:8px solid #30352c; box-shadow:0 0 35px 20px #010a0c; }
+.closet-door::before { content:""; position:absolute; inset:24% 10% 28%; border:3px solid #454b3c; background:repeating-linear-gradient(0deg,#060e14 0 9px,#3d463b 10px 12px,#151f22 13px 22px); box-shadow:inset 0 0 17px #02080c; }
+.closet-door::after { content:""; position:absolute; top:51%; width:10px; height:48px; background:#726846; border:2px solid #a09564; border-radius:3px; }
+.closet-left { left:0; transform:perspective(800px) rotateY(4deg); transform-origin:left; }
+.closet-right { right:0; transform:perspective(800px) rotateY(-4deg); transform-origin:right; }
+.closet-left::after { right:12px; }.closet-right::after { left:12px; }
+.closet-vignette { position:absolute; inset:0; z-index:3; pointer-events:none; background:radial-gradient(ellipse at center,transparent 5%,#02080b50 45%,#020609f5 100%); }
+.closet-caption { position:absolute; z-index:4; inset:0 0 auto; padding:22px 26px; background:linear-gradient(#061017f5,#061017c9 75%,transparent); }
+.closet-caption .eyebrow { color:#bcd5c4; font-size:14px; }
+.closet-caption h2 { margin:5px 0 8px; }
+.closet-observation { color:#dde7d8; font-size:16px; line-height:1.55; }
+.closet-exit { position:absolute; z-index:5; inset:auto 0 0; padding:22px 26px; background:linear-gradient(transparent,#061017e8 20%,#061017); text-align:center; }
+.closet-exit p { color:#d5d9cb; font-size:16px; margin-bottom:12px; }
+.closet-exit button { min-height:48px; max-width:100%; }
+.closet-hands { position:absolute; inset:auto 14% 12%; height:15%; z-index:3; pointer-events:none; }
+.closet-hands i { position:absolute; bottom:0; width:62px; height:72px; border-radius:35% 28% 0 0; background:linear-gradient(#b3a286 0 50%,#283e3e 51%); box-shadow:inset 8px 0 #716a5e; transform:rotate(-13deg); }
+.closet-hands i:last-child { right:0; transform:rotate(13deg); }
+.closet-view.is-safe { border-color:#9abf98; }.is-safe .closet-world { filter:brightness(1.25); }
+@media(max-width:620px) {
+ .pursuit-hud { padding:7px 8px; gap:6px; font-size:14px; }
+ .pursuit-status { max-width:100%; }.pursuit-distance { display:none; }
+ .pursuit-hide { right:9px; padding:9px; font-size:14px; }
+ .pursuit-modal { padding:18px; }
+ .pursuit-modal h2 { font-size:1.4rem; }
+ .intro-cell { width:72px; height:88px; margin-left:9px; }
+ .pursuit-lesson { gap:8px; margin-top:12px; }.pursuit-lesson li { padding:7px 10px; font-size:14px; }
+ .pursuit-modal .actions { margin-top:15px; }
+ .closet-view { padding:0; }
+ .closet-caption { padding:18px 16px; }.closet-caption h2 { font-size:1.45rem; }
+ .closet-exit { padding:18px 14px; }.closet-exit p { font-size:14px; }
+ .closet-hands { inset-inline:7%; }
+}
+@media(max-height:500px) {
+ .pursuit-modal { padding:14px; }
+ .pursuit-lesson { grid-template-columns:repeat(3,minmax(0,1fr)); }.pursuit-lesson li { font-size:14px; }
+ .intro-cell { width:65px; height:75px; }
+ .pursuit-modal h2 { font-size:1.3rem; margin:2px 0 6px; }
+ .pursuit-modal>p { font-size:14px; }
+ .caught-cell { width:80px; height:90px; margin:0 auto 3px; }
+ .closet-view { padding:0; }.closet-caption { padding:12px 18px; }.closet-caption h2 { font-size:1.25rem; }
+ .closet-caption .eyebrow { display:none; }.closet-exit { padding:12px 18px; }.closet-exit p { margin-bottom:6px; font-size:14px; }
+ .closet-hands { display:none; }
+}
+@media(prefers-reduced-motion:reduce) { .closet-shadow { transition:none; } }

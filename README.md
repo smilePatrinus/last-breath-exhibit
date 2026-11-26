@@ -8,10 +8,10 @@
 
 開始畫面可選快速、簡單、普通、困難；預設普通。重新開始保留這次選的模式，回到標題後可再換。快速試玩也沿用選定模式。分享時可使用：
 
-- [快速模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=quick)
-- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=easy)
-- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=normal)
-- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&difficulty=hard)
+- [快速模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&difficulty=quick)
+- [簡單模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&difficulty=easy)
+- [普通模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&difficulty=normal)
+- [困難模式](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&difficulty=hard)
 
 | 關卡 | 簡單 | 普通 | 困難 |
 | --- | --- | --- | --- |
@@ -56,6 +56,24 @@
 簡單版使用 29×23 的房間與走廊地圖：從入口廣場走到左側紀錄室，經過中央庭院與上方證據室，最後繞過出口區的彎道。包含小迴圈和可回頭的短岔路，線索與出口分開配置，不再只走一條短通道。
 
 角色需自行移動到紀錄與出口，金色路線只指路。保留方向鍵、WASD、手機虛擬搖桿與點亮處石板路的移動方式；兩道證據門仍需依序核對來源才能通過。
+
+## 巨噬細胞守衛與櫃內第一人稱
+
+簡單、普通與困難的新自由探索迷宮加入原創巨噬細胞守衛；快速模式不出現追兵或躲藏教學。靈感是《青鬼》的追逐與躲藏節奏：[官方作品介紹](https://store.steampowered.com/app/2934190/?l=japanese)、[躲櫃玩法參考](https://gamepedia.jp/archives/2908)。角色、櫃內場景、點陣圖與配樂皆為本遊戲程式繪製／合成，未使用青鬼素材。守衛把偵探當作外來者是肺城的幻想劇情。
+
+首次進迷宮先說明櫃子、視線和復歸方式。角色走出一定步數且經過暖身時間後，先出現腳步預警，再沿目前可走的通道追逐。牆與關閉的證據門會阻擋追蹤和視線；轉角、拉開距離與藏身都能脫離追逐。青色躲藏櫃放在原有可走格，不改地形、不阻擋通道，已探索的櫃子也會在小地圖標示。
+
+靠近櫃子按 **E** 或觸控「躲進櫃子」，切成櫃內第一人稱：從門縫觀察守衛影子，聽腳步靠近／遠去，等安全提示後自行開門回到原來的 RPG 地圖。可以提早出去，但可能再被追上。普通與困難被守衛直接看見躲藏會暴露，簡單模式提供寬鬆躲藏。
+
+| 模式 | 守衛每格移動 | 預警 | 躲藏觀察至少 | 再次巡邏間隔 |
+| --- | --- | --- | --- | --- |
+| 簡單 | 245 ms | 2.4 秒 | 3.6 秒 | 30 秒＋步數門檻 |
+| 普通 | 175 ms | 1.8 秒 | 5.2 秒 | 24 秒＋步數門檻 |
+| 困難 | 142 ms | 1.4 秒 | 6.5 秒 | 16 秒＋步數門檻 |
+
+躲藏還須等守衛實際走遠；被抓到後按鈕回到最近的安全點，保留鑰匙包、開門、原始線索、紙杯已完成紀錄與評估結果。讀線索、紙杯機關、操作教學、背景分頁與重新開始確認時暫停追逐；追逐中不能打開新線索來凍結守衛。離開迷宮與重新開始會停止原本動畫和控制器。音樂和腳步遵守各自的音樂／音效開關；低動態模式不做晃動畫面。
+
+`pursuit.js` 管理巡邏狀態、尋路、視線、櫃子分布、第一人稱與復歸；`pursuit.css` 繪製櫃內場景與操作介面；`music.js` 增加原創追逐樂段。既有規則版對照迷宮保持原貌。
 
 ## 紙杯換位與真鑰匙
 
@@ -132,7 +150,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 新版第二關：迷宮探路（試作）
 
-[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&demo=maze&maze=rules)
+[直接試玩](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&demo=maze) · [對照原規則版](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&demo=maze&maze=rules)
 
 新版先帶白色念珠菌走一條短路線。地圖包含相連的回圈、錯路與兩扇證據門，全程留在同一張地圖。第一關的原始紀錄自動帶入，走到紀錄或門牌會自動出現線索；玩家只需移動、觀察和回頭探索。
 
@@ -172,7 +190,7 @@ D07 的檢體編號、症狀組合、日期、時間及數值是模擬資料。A
 
 ## 第四關的言彈議論
 
-[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=23&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
+[直接試玩第四關](https://smilepatrinus.github.io/last-breath-exhibit/?v=24&demo=debate)。首頁也有相同入口，會明確標示使用已整理的模擬案卷。完整遊戲仍從第一關開始，第四關只使用該輪已收集的來源。
 
 - 點選下方言彈裝填，再點流動發言中的標記片語發射。Q／E 可切換言彈，舞台取得焦點時可按 Enter 對當前標記發射。
 - 黃色片語用證據指出矛盾；藍色片語用證據支持。標記包含干擾點，言彈與目標都要對上。

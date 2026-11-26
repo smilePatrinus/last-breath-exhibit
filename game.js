@@ -62,7 +62,7 @@
       if (audio.state === "suspended") audio.resume().catch(() => {});
       const tones = {
         phone: [654, 784, 654, 784], knock: [145, 130], rift: [277, 415, 554],
-        stamp: [100, 66], done: [392, 494, 587], tick: [310]
+        stamp: [100, 66], done: [392, 494, 587], tick: [310], footstep:[72], warning:[140,110]
       }[effect] || [310];
       const step = effect === "phone" ? 0.16 : 0.09;
       tones.forEach((frequency, index) => {
@@ -200,6 +200,9 @@
   }
 
   function visitLabyrinth(id) {
+    if(window.BreathPursuit.active(state.labyrinth.pursuit)||window.BreathPursuit.overlay(state.labyrinth.pursuit)){
+      toast("先躲過巡邏守衛，再停下來查看線索。");return;
+    }
     if (window.BreathKeyShuffle.intercept(state.labyrinth,id)) {
       play("tick");
       render(false);
@@ -207,12 +210,34 @@
       return;
     }
     if (window.BreathLabyrinthData.visit(state.labyrinth,id,state.records)) {
+      if(window.BreathLabyrinthData.landmarks.some(item=>item.id===id&&["key","record"].includes(item.type)))window.BreathPursuit.checkpoint(state.labyrinth);
       state.labyrinth.hintGoal = "";
       if (state.labyrinth.complete) state.maze.results.B = state.labyrinth.result;
       play(state.labyrinth.complete ? "done" : "tick");
       render(false);
       if (modes.isQuick()) screen.querySelector(".labyrinth-message")?.scrollIntoView({block:"center"});
     }
+  }
+
+  function pursuitMusic() {
+    const p=state.view==="labyrinth"?state.labyrinth?.pursuit:null;
+    const danger=window.BreathPursuit.active(p)||Boolean(p?.phase==="hidden"&&p.enemy);
+    window.BreathMusic?.scene(state.view,state.chapter,
+      sceneViews.includes(state.view)||Boolean(state.labyrinth?.dialog&&state.view==="labyrinth")||
+      Boolean(state.maze?.feedback&&state.view==="maze")||Boolean(state.debate?.feedback&&state.view==="debate"),danger);
+  }
+
+  function pursuitChanged(modal) {
+    if(modal){render(false);screen.querySelector(".pursuit-modal h2")?.focus({preventScroll:true});}
+    else pursuitMusic();
+    if(state.labyrinth?.pursuit?.phase==="warning")play("warning");
+  }
+
+  function hidePursuit(id) {
+    const session=state.labyrinth;
+    if(!window.BreathPursuit.hide(session.pursuit,id,session.position,window.BreathLabyrinthData.floorPlan(session)))return false;
+    session.position={x:session.pursuit.closet.x,y:session.pursuit.closet.y};
+    render(false);screen.querySelector(".pursuit-modal h2")?.focus({preventScroll:true});return true;
   }
 
   function demoMaze() {
@@ -459,10 +484,11 @@
       if (dialogButton) dialogButton.focus({preventScroll:true});
     }
     if (state.view === "labyrinth") {
-      labyrinthControl = window.BreathLabyrinth.mount(screen,state.labyrinth,visitLabyrinth,(message)=>toast(message));
+      labyrinthControl = window.BreathLabyrinth.mount(screen,state.labyrinth,visitLabyrinth,(message)=>toast(message),pursuitChanged,hidePursuit,()=>play("footstep"));
       const messageFocus=state.labyrinth.cupGame && ["preview","shuffling"].includes(state.labyrinth.cupGame.phase)?
         screen.querySelector(".key-shuffle h2"):screen.querySelector(".labyrinth-message button:not(:disabled)");
       messageFocus?.focus({preventScroll:true});
+      screen.querySelector(".pursuit-modal h2")?.focus({preventScroll:true});
       if (state.labyrinth.cupGame) cupControl = window.BreathKeyShuffle.mount(screen,state.labyrinth.cupGame);
     }
     if (state.view === "debate") {
@@ -471,9 +497,7 @@
       if (messageButton) messageButton.focus({preventScroll:true});
     }
     tutorial.update(state,{assist:hintAssist,clear:clearHint});
-    window.BreathMusic?.scene(state.view,state.chapter,
-      sceneViews.includes(state.view) || Boolean(state.labyrinth?.dialog && state.view === "labyrinth") ||
-      Boolean(state.maze?.feedback && state.view === "maze") || Boolean(state.debate?.feedback && state.view === "debate"));
+    pursuitMusic();
   }
 
   function placeToken(token, slot) {
@@ -610,6 +634,21 @@
     "demo-debate": demoDebate,
     "demo-maze": demoMaze,
     "labyrinth-landmark": (id) => labyrinthControl?.toLandmark(id),
+    "pursuit-start": () => {
+      if(state.view!=="labyrinth"||!window.BreathPursuit.start(state.labyrinth.pursuit))return;
+      render(false);screen.querySelector(".labyrinth-board")?.scrollIntoView({block:"start"});
+    },
+    "pursuit-hide": (id) => {if(state.view==="labyrinth")labyrinthControl?.hide(id);},
+    "pursuit-leave": () => {
+      if(state.view!=="labyrinth"||!window.BreathPursuit.leave(state.labyrinth.pursuit))return;
+      render(false);screen.querySelector(".labyrinth-viewport")?.focus({preventScroll:true});
+      screen.querySelector(".labyrinth-board")?.scrollIntoView({block:"center"});
+    },
+    "pursuit-retry": () => {
+      if(state.view!=="labyrinth"||!window.BreathPursuit.retry(state.labyrinth))return;
+      render(false);screen.querySelector(".labyrinth-viewport")?.focus({preventScroll:true});
+      screen.querySelector(".labyrinth-board")?.scrollIntoView({block:"center"});
+    },
     "key-cup": (value) => {
       if(state.view!=="labyrinth" || !state.labyrinth.cupGame)return;
       const game=state.labyrinth.cupGame;
@@ -791,6 +830,12 @@
 
   function keydown(event) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || dialog.open) return;
+    if(state.view==="labyrinth"&&window.BreathPursuit.overlay(state.labyrinth.pursuit)&&event.key==="Tab"){
+      event.preventDefault();
+      const controls=[...screen.querySelectorAll('.pursuit-modal button:not(:disabled)')],current=controls.indexOf(document.activeElement);
+      const next=current<0?(event.shiftKey?controls.length-1:0):(current+(event.shiftKey?-1:1)+controls.length)%controls.length;
+      controls[next]?.focus({preventScroll:true});return;
+    }
     if (state.view === "labyrinth" && state.labyrinth.dialog && event.key === "Tab") {
       event.preventDefault();
       const controls=[...screen.querySelectorAll('.labyrinth-message button:not(:disabled),.labyrinth-message a[href]')];
