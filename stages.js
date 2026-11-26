@@ -76,6 +76,7 @@
       '<span class="beat-count">' + (state.beat+1) + ' / ' + current.length + '</span>' +
       (mode === "intro" && state.beat > 0 ? button("上一句", "rewind-intro", "", {kind:"quiet small"}) : "") +
       (mode === "intro" ? button("略過序章", "skip", "", {kind:"quiet small"}) : "") +
+      window.BreathAutoDialogue.control(state,button) +
       button(html(label) + ' <span aria-hidden="true">›</span>',"advance","",{kind:"primary"});
   }
 

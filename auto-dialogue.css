@@ -1,0 +1,13 @@
+.scene-actions { flex-wrap:wrap; }
+.scene-actions .beat-count { margin-right:auto; }
+.auto-dialogue { position:relative; min-height:44px; padding-block:9px 12px; white-space:nowrap; font-size:14px; color:#d4e3d8; border-color:#6b8980; background:#243a3d; }
+.auto-dialogue-meter { position:absolute; bottom:4px; left:8px; right:8px; height:2px; background:#11272c; overflow:hidden; border-radius:2px; pointer-events:none; }
+.auto-dialogue-meter i { display:block; width:100%; height:100%; background:#aac9ac; transform-origin:left; }
+.auto-dialogue[aria-pressed=false] { color:#b4c3bd; background:#1c2c35; }
+.auto-dialogue[aria-pressed=false] .auto-dialogue-meter { display:none; }
+.auto-dialogue[data-paused=true] .auto-dialogue-meter i { background:#a6aaa0; }
+@media(max-width:620px) {
+  .scene-actions { gap:6px; }
+  .auto-dialogue { padding-inline:9px; }
+}
+@media(prefers-reduced-motion:reduce) { .auto-dialogue-meter { visibility:hidden; } }

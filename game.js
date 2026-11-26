@@ -498,6 +498,7 @@
     }
     tutorial.update(state,{assist:hintAssist,clear:clearHint});
     pursuitMusic();
+    window.BreathAutoDialogue.update(state,()=>{if(sceneViews.includes(state.view))advance();});
   }
 
   function placeToken(token, slot) {
@@ -728,6 +729,7 @@
     },
     skip: () => go("travel", 0),
     advance,
+    "auto-dialogue": () => {if(sceneViews.includes(state.view)&&window.BreathAutoDialogue.toggle(state.difficulty))render(false);},
     "rewind-intro": () => {
       if (state.view !== "intro" || state.beat === 0) return;
       state.beat -= 1;
